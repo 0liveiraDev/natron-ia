@@ -77,6 +77,7 @@ const Tasks: React.FC = () => {
             await api.delete(`/tasks/${id}`);
             showToast('Tarefa deletada com sucesso!', 'success');
             fetchTasks();
+            await refreshUser(); // Update XP in sidebar immediately
         } catch (error) {
             showToast('Erro ao deletar tarefa', 'error');
         }
