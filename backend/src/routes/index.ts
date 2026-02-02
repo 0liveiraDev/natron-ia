@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth';
-import { register, login, getMe, updateProfile, uploadAvatar } from '../controllers/authController';
+import { register, login, getMe, uploadAvatar } from '../controllers/authController';
 import * as habitController from '../controllers/habitController';
 import * as taskController from '../controllers/taskController';
 import * as financeController from '../controllers/financeController';
@@ -21,7 +21,6 @@ router.post('/admin/reset-all-xp', resetAllXp);
 router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.get('/auth/me', authMiddleware, getMe);
-router.put('/auth/profile', authMiddleware, updateProfile);
 router.post('/auth/avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 router.post('/auth/upload-avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 

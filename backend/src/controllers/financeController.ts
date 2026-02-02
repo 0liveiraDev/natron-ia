@@ -30,10 +30,10 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             `${type === 'entrada' ? 'Entrada' : 'Saída'} de R$ ${amount} em ${category}`
         );
 
-        // Award XP - Only for investments
+        // Award XP - Only for investment INCOME (entrada + investimento)
         try {
             const cat = category?.toLowerCase();
-            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+            if (type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
                 await addXp(userId, 'FINANCEIRO', 10);
             }
         } catch (xpError) {
