@@ -114,6 +114,10 @@ export const getMe = async (req: any, res: Response) => {
             },
         });
 
+        if (!user) {
+            return res.status(401).json({ error: 'Usuário não encontrado' });
+        }
+
         res.json(user);
     } catch (error) {
         console.error('Get me error:', error);

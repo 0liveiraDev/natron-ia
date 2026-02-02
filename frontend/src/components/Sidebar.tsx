@@ -14,6 +14,14 @@ const Sidebar: React.FC = () => {
     const [isLevelingUp, setIsLevelingUp] = useState(false);
     const prevRankRef = useRef<string | undefined>(undefined);
 
+    const getAvatarUrl = (url: string | null | undefined) => {
+        if (!url) return null;
+        if (url.startsWith('http')) return url;
+        const apiBase = import.meta.env.VITE_API_URL || 'https://natron-ia.onrender.com/api';
+        const base = apiBase.replace('/api', '');
+        return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+    };
+
     useEffect(() => {
         if (user?.rank) {
             // If we have a previous rank and it differs from current, trigger animation
@@ -182,7 +190,7 @@ const Sidebar: React.FC = () => {
                     >
                         <div className="w-full h-full rounded-full overflow-hidden bg-[#1a1a1a] flex items-center justify-center relative">
                             {user?.avatarUrl ? (
-                                <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                <img src={getAvatarUrl(user.avatarUrl) || ''} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                                 <span className="text-3xl font-bold text-gray-500">{user?.name?.charAt(0).toUpperCase()}</span>
                             )}
