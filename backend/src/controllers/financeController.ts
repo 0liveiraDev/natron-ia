@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middlewares/auth';
+import fs from 'fs';
+import path from 'path';
 import { logActivity } from '../services/activityService';
 import { addXp } from '../services/xpService';
 
@@ -278,9 +280,25 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
             console.log('✅ Sending response');
             res.json(response);
 
+            // Deletar o arquivo PDF imediatamente após o processamento (Privacidade e Espaço)
+            try {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log(`🗑️ Deleted temporary receipt: ${filePath}`);
+                }
+            } catch (fsError) {
+                console.error('Error deleting receipt file:', fsError);
+            }
+
         } catch (processingError: any) {
             console.error('❌ Error processing file:', processingError);
             console.error('Stack:', processingError.stack);
+
+            // Cleanup on error
+            try {
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (e) { }
+
             return res.status(500).json({
                 error: 'Erro ao processar nota fiscal',
                 details: processingError.message
