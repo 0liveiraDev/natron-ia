@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import { motion } from 'framer-motion';
 import { useToast } from '../components/Toast';
 
@@ -10,6 +11,7 @@ const Register: React.FC = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
+    const { refreshUser } = useUser();
     const navigate = useNavigate();
     const { showToast, ToastContainer } = useToast();
 
@@ -19,6 +21,7 @@ const Register: React.FC = () => {
 
         try {
             await register(name, email, password);
+            await refreshUser(); // Load user data including name
             showToast('Conta criada com sucesso!', 'success');
             navigate('/dashboard');
         } catch (error: any) {

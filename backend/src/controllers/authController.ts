@@ -118,40 +118,15 @@ export const getMe = async (req: any, res: Response) => {
             return res.status(401).json({ error: 'Usuário não encontrado' });
         }
 
+
         res.json(user);
     } catch (error) {
-        console.error('Get me error:', error);
+        console.error('Get user error:', error);
         res.status(500).json({ error: 'Erro ao buscar usuário' });
     }
 };
 
-export const updateProfile = async (req: any, res: Response) => {
-    try {
-        const userId = req.userId;
-        const { name, avatarUrl } = req.body;
-
-        const user = await prisma.user.update({
-            where: { id: userId },
-            data: {
-                name,
-                avatarUrl,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                avatarUrl: true,
-                role: true,
-            }
-        });
-
-        res.json(user);
-    } catch (error) {
-        console.error('Update profile error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar perfil' });
-    }
-};
-
+// Upload avatar
 export const uploadAvatar = async (req: any, res: Response) => {
     try {
         const userId = req.userId;
@@ -160,23 +135,23 @@ export const uploadAvatar = async (req: any, res: Response) => {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        // Guardar caminho relativo para flexibilidade entre ambientes
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        const avatarUrl = `/uploads/${req.file.filename}`;
 
         const user = await prisma.user.update({
             where: { id: userId },
             data: { avatarUrl },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                avatarUrl: true
-            }
         });
 
-        res.json(user);
+        res.json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+            currentXp: user.currentXp,
+            rank: user.rank,
+        });
     } catch (error) {
         console.error('Upload avatar error:', error);
-        res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
+        res.status(500).json({ error: 'Erro ao fazer upload da foto' });
     }
 };

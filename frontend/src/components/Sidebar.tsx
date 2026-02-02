@@ -217,7 +217,7 @@ const Sidebar: React.FC = () => {
 
                     {/* Welcome Text (Name) */}
                     <h2 className="font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                        Bem-vindo, {user?.name?.split(' ')[0] || 'Bruno'}!
+                        Bem-vindo, {user?.name?.split(' ')[0] || 'Usuário'}!
                     </h2>
 
                     {/* Rank Badge */}

@@ -84,10 +84,19 @@ const Dashboard: React.FC = () => {
     const totalGoals = activeGoals + completedGoals;
     const goalsProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-    // Weekly Costs from API data - normalize to percentages
+    // Weekly Costs from API data - ensure minimum visible height
     const weeklyCostsRaw = weeklyProgress.map((day: any) => day.expenses || 0);
-    const maxWeeklyCost = Math.max(...weeklyCostsRaw, 1); // Avoid division by zero
-    const weeklyCosts = weeklyCostsRaw.map(cost => (cost / maxWeeklyCost) * 100);
+    const maxWeeklyCost = Math.max(...weeklyCostsRaw, 1);
+    const weeklyCosts = weeklyCostsRaw.map(cost => {
+        if (cost === 0) return 0;
+        // Ensure at least 10% height for visibility
+        const percentage = (cost / maxWeeklyCost) * 100;
+        return Math.max(percentage, 10);
+    });
+
+    console.log('📊 Weekly Progress Data:', weeklyProgress);
+    console.log('💰 Weekly Costs Raw:', weeklyCostsRaw);
+    console.log('📈 Weekly Costs Normalized:', weeklyCosts);
 
     // Weekly Income - calculate from weeklyProgress (need to add income field to backend)
     const weeklyIncome = weeklyProgress.reduce((sum: number, day: any) => sum + (day.income || 0), 0);
@@ -336,39 +345,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Bottom Row - Finance */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-
-                {/* Gastos da Semana - Bar Chart placeholder for now */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="dashboard-card"
-                >
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-sm font-bold uppercase text-[#ff3b30]">Custos da Semana</h3>
-                        <span className="text-xs text-[#ff3b30]">↘</span>
-                    </div>
-                    <div className="h-40 flex items-end gap-4 px-4">
-                        <div className="w-full h-full flex items-end justify-between">
-                            {weeklyCosts.map((percentage, i) => (
-                                <div key={i} className="group relative w-full mx-1">
-                                    <div className="relative h-full flex flex-col justify-end">
-                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 px-2 py-1 rounded text-[10px] whitespace-nowrap">
-                                            R$ {weeklyCostsRaw[i].toFixed(2)}
-                                        </div>
-                                        <div
-                                            className="w-full bg-[#ff3b30] rounded-t-sm hover:opacity-80 transition-all"
-                                            style={{ height: `${Math.max(percentage, 2)}%` }}
-                                        ></div>
-                                    </div>
-                                    <span className="text-[10px] text-gray-500 mt-2 block text-center">
-                                        {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'][i]}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </motion.div>
+            <div className="grid grid-cols-1 gap-6">
 
                 {/* Gastos por Categoria - Donut */}
                 <motion.div

@@ -23,6 +23,7 @@ router.post('/auth/login', login);
 router.get('/auth/me', authMiddleware, getMe);
 router.put('/auth/profile', authMiddleware, updateProfile);
 router.post('/auth/avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
+router.post('/auth/upload-avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 
 // Habit routes
 router.post('/habits', authMiddleware, habitController.createHabit);

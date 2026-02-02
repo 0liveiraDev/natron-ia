@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
+import { useUser } from '../contexts/UserContext';
 import DonutChart from '../components/charts/DonutChart';
 import { ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, Target, Settings, Plus, Trash2, Search, PiggyBank, Utensils, Gamepad2, Tv, Zap, Home, Pill, Car, BookOpen, Briefcase } from 'lucide-react';
 
@@ -42,6 +43,7 @@ const Finance: React.FC = () => {
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [configMode, setConfigMode] = useState<'general' | 'monthly' | 'categories'>('general');
     const { showToast, ToastContainer } = useToast();
+    const { refreshUser } = useUser();
 
     // Filters & Search
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +54,7 @@ const Finance: React.FC = () => {
     const [type, setType] = useState<'entrada' | 'saida'>('saida');
     const [category, setCategory] = useState('alimentacao');
     const [description, setDescription] = useState('');
+    const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Config Form
     const [tempBudget, setTempBudget] = useState('');
@@ -161,13 +164,15 @@ const Finance: React.FC = () => {
                 type,
                 category,
                 description,
-                date: new Date().toISOString()
+                date: new Date(transactionDate).toISOString()
             });
             showToast('Transação criada!', 'success');
             setShowTransactionModal(false);
             setAmount('');
             setDescription('');
+            setTransactionDate(new Date().toISOString().split('T')[0]); // Reset to today
             fetchData();
+            await refreshUser(); // Update XP in real-time
         } catch (error) {
             showToast('Erro ao criar transação', 'error');
         }
@@ -179,6 +184,7 @@ const Finance: React.FC = () => {
             await api.delete(`/transactions/${id}`);
             showToast('Transação removida', 'success');
             fetchData();
+            await refreshUser(); // Update XP in real-time
         } catch (error) {
             showToast('Erro ao remover', 'error');
         }
@@ -602,6 +608,17 @@ const Finance: React.FC = () => {
                                 <select value={category} onChange={(e) => setCategory(e.target.value)} className="input-field">
                                     {Object.entries(CATEGORIES).map(([key, val]) => <option key={key} value={key}>{val.label}</option>)}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Data</label>
+                                <input
+                                    type="date"
+                                    value={transactionDate}
+                                    onChange={(e) => setTransactionDate(e.target.value)}
+                                    required
+                                    className="input-field"
+                                />
                             </div>
 
                             <div>

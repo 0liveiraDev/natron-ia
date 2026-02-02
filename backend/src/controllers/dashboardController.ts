@@ -127,13 +127,19 @@ export const getOverview = async (req: any, res: Response) => {
 export const getWeeklyProgress = async (req: any, res: Response) => {
     try {
         const userId = req.userId;
+        const weekOffset = parseInt(req.query.weekOffset as string) || 0; // 0 = current week, -1 = last week, etc.
+
         const now = new Date();
+        // Adjust the base date by the week offset
+        const baseDate = new Date(now);
+        baseDate.setDate(now.getDate() + (weekOffset * 7));
+
         const days = [];
 
-        // Get last 7 days
+        // Get 7 days starting from the adjusted base date
         for (let i = 6; i >= 0; i--) {
-            const date = new Date(now);
-            date.setDate(now.getDate() - i);
+            const date = new Date(baseDate);
+            date.setDate(baseDate.getDate() - i);
             const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
             const endOfDay = new Date(startOfDay);
             endOfDay.setDate(endOfDay.getDate() + 1);
@@ -164,38 +170,42 @@ export const getWeeklyProgress = async (req: any, res: Response) => {
                 },
             });
 
-            // Get expenses for this day
-            const expenses = await prisma.transaction.findMany({
-                where: {
-                    userId,
-                    type: 'saida',
-                    date: {
-                        gte: startOfDay,
-                        lt: endOfDay,
-                    },
-                },
-            });
+            const dateStr = startOfDay.toISOString().split('T')[0]; // YYYY-MM-DD
 
-            // console.log(`[WeeklyProgress] Day ${i}: Expenses count=${expenses.length}`);
+            // Get expenses for this day - using DATE() to ignore time
+            const expenses = await prisma.$queryRaw<Array<{ id: string; amount: number; category: string; date: Date }>>`
+                SELECT id, amount, category, date
+                FROM "Transaction"
+                WHERE "userId" = ${userId}
+                AND type = 'saida'
+                AND DATE(date) = DATE(${startOfDay})
+            `;
+
+            console.log(`[WeeklyProgress] Day ${dateStr}:`);
+            console.log(`  - Searching for date: ${dateStr}`);
+            console.log(`  - Expenses found: ${expenses.length}`);
+            if (expenses.length > 0) {
+                expenses.forEach(e => {
+                    console.log(`    * R$ ${e.amount} - ${e.category} - Date: ${e.date.toISOString()}`);
+                });
+            }
+            const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+            console.log(`  - Total: R$ ${totalExpenses}`);
 
             // Get income for this day
-            const income = await prisma.transaction.findMany({
-                where: {
-                    userId,
-                    type: 'entrada',
-                    date: {
-                        gte: startOfDay,
-                        lt: endOfDay,
-                    },
-                },
-            });
+            const income = await prisma.$queryRaw<Array<{ amount: number }>>`
+                SELECT amount
+                FROM "Transaction"
+                WHERE "userId" = ${userId}
+                AND type = 'entrada'
+                AND DATE(date) = DATE(${startOfDay})
+            `;
 
-            const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
             const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
             const xp = (habitLogs.length * 10) + (tasks.length * 25);
 
             days.push({
-                date: startOfDay.toISOString().split('T')[0],
+                date: dateStr,
                 day: startOfDay.getDate(),
                 habits: habitLogs.length,
                 tasks: tasks.length,

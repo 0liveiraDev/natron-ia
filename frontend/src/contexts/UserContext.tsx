@@ -35,6 +35,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUser = async () => {
         try {
             const response = await api.get('/auth/me');
+            console.log('👤 User data loaded:', response.data);
+            console.log('🖼️ Avatar URL from API:', response.data.avatarUrl);
             setUser(response.data);
         } catch (error) {
             console.error('Error fetching user:', error);
@@ -87,7 +89,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setUser(null);
                 setLoading(false);
             }
-        }, 3000); // Reduced to 3 seconds
+        }, 5000); // 5 second timeout for slower connections
 
         fetchUser().finally(() => {
             if (!isCancelled) {
