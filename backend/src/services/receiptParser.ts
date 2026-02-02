@@ -38,33 +38,100 @@ function extractAmount(text: string): number | undefined {
     return undefined;
 }
 
+
 /**
  * Extrai data do texto
  */
 function extractDate(text: string): Date | undefined {
-    // Padrões de data
+    const textLower = text.toLowerCase();
+
+    // Mapeamento de meses em português
+    const monthMap: Record<string, number> = {
+        'janeiro': 0, 'jan': 0,
+        'fevereiro': 1, 'fev': 1,
+        'março': 2, 'mar': 2,
+        'abril': 3, 'abr': 3,
+        'maio': 4, 'mai': 4,
+        'junho': 5, 'jun': 5,
+        'julho': 6, 'jul': 6,
+        'agosto': 7, 'ago': 7,
+        'setembro': 8, 'set': 8,
+        'outubro': 9, 'out': 9,
+        'novembro': 10, 'nov': 10,
+        'dezembro': 11, 'dez': 11
+    };
+
+    // Padrões de data (ordem de especificidade)
     const patterns = [
-        /(\d{2})\/(\d{2})\/(\d{4})/,  // DD/MM/YYYY
-        /(\d{2})\/(\d{2})\/(\d{2})/,  // DD/MM/YY
-        /data[:\s]+(\d{2})\/(\d{2})\/(\d{4})/i,
+        // Mercado Pago: "Segunda-feira, 29 de dezembro de 2025, às 10:44:50"
+        // Nubank: "15 de janeiro de 2025"
+        {
+            regex: /(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i,
+            extract: (match: RegExpMatchArray) => {
+                const day = parseInt(match[1]);
+                const monthName = match[2].toLowerCase();
+                const year = parseInt(match[3]);
+                const month = monthMap[monthName];
+
+                if (month !== undefined) {
+                    return new Date(year, month, day);
+                }
+                return undefined;
+            }
+        },
+
+        // ISO format: "2025-12-29" or "2025/12/29"
+        {
+            regex: /(\d{4})[-\/](\d{2})[-\/](\d{2})/,
+            extract: (match: RegExpMatchArray) => {
+                const year = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const day = parseInt(match[3]);
+                return new Date(year, month, day);
+            }
+        },
+
+        // DD/MM/YYYY
+        {
+            regex: /(\d{2})\/(\d{2})\/(\d{4})/,
+            extract: (match: RegExpMatchArray) => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const year = parseInt(match[3]);
+                return new Date(year, month, day);
+            }
+        },
+
+        // DD/MM/YY
+        {
+            regex: /(\d{2})\/(\d{2})\/(\d{2})/,
+            extract: (match: RegExpMatchArray) => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const year = 2000 + parseInt(match[3]);
+                return new Date(year, month, day);
+            }
+        },
+
+        // "Data: DD/MM/YYYY"
+        {
+            regex: /data[:\s]+(\d{2})\/(\d{2})\/(\d{4})/i,
+            extract: (match: RegExpMatchArray) => {
+                const day = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const year = parseInt(match[3]);
+                return new Date(year, month, day);
+            }
+        },
     ];
 
     for (const pattern of patterns) {
-        const match = text.match(pattern);
+        const match = textLower.match(pattern.regex);
         if (match) {
-            let day, month, year;
-
-            if (match[0].includes('data')) {
-                day = parseInt(match[1]);
-                month = parseInt(match[2]) - 1;
-                year = parseInt(match[3]);
-            } else {
-                day = parseInt(match[1]);
-                month = parseInt(match[2]) - 1;
-                year = match[3].length === 2 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
+            const date = pattern.extract(match);
+            if (date && !isNaN(date.getTime())) {
+                return date;
             }
-
-            return new Date(year, month, day);
         }
     }
 
@@ -328,6 +395,228 @@ function identifyEstablishmentAndCategory(text: string): {
             category: 'outros',
             subcategory: 'pagamento',
             name: 'PayPal'
+        },
+
+        // E-COMMERCE (Variável)
+        'amazon': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Amazon'
+        },
+        'mercado livre': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Mercado Livre'
+        },
+        'shopee': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Shopee'
+        },
+        'aliexpress': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'AliExpress'
+        },
+        'shein': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Shein'
+        },
+        'magazine luiza': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Magazine Luiza'
+        },
+        'americanas': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'compras_online',
+            name: 'Americanas'
+        },
+
+        // CONTAS / UTILITIES (Essencial)
+        'energia': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'energia',
+            name: 'Conta de Energia'
+        },
+        'luz': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'energia',
+            name: 'Conta de Luz'
+        },
+        'agua': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'agua',
+            name: 'Conta de Água'
+        },
+        'internet': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'internet',
+            name: 'Internet'
+        },
+        'telefone': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'telefone',
+            name: 'Telefone'
+        },
+        'celular': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'telefone',
+            name: 'Celular'
+        },
+        'aluguel': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'aluguel',
+            name: 'Aluguel'
+        },
+        'condominio': {
+            type: 'essencial' as const,
+            category: 'contas',
+            subcategory: 'condominio',
+            name: 'Condomínio'
+        },
+
+        // EDUCAÇÃO (Essencial/Variável)
+        'curso': {
+            type: 'variavel' as const,
+            category: 'educacao',
+            subcategory: 'curso',
+            name: 'Curso'
+        },
+        'faculdade': {
+            type: 'essencial' as const,
+            category: 'educacao',
+            subcategory: 'faculdade',
+            name: 'Faculdade'
+        },
+        'universidade': {
+            type: 'essencial' as const,
+            category: 'educacao',
+            subcategory: 'faculdade',
+            name: 'Universidade'
+        },
+        'escola': {
+            type: 'essencial' as const,
+            category: 'educacao',
+            subcategory: 'escola',
+            name: 'Escola'
+        },
+        'livro': {
+            type: 'variavel' as const,
+            category: 'educacao',
+            subcategory: 'livros',
+            name: 'Livro'
+        },
+        'livraria': {
+            type: 'variavel' as const,
+            category: 'educacao',
+            subcategory: 'livros',
+            name: 'Livraria'
+        },
+
+        // SERVIÇOS PESSOAIS (Variável)
+        'barbeiro': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'beleza',
+            name: 'Barbeiro'
+        },
+        'barbearia': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'beleza',
+            name: 'Barbearia'
+        },
+        'salao': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'beleza',
+            name: 'Salão de Beleza'
+        },
+        'manicure': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'beleza',
+            name: 'Manicure'
+        },
+        'estetica': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'beleza',
+            name: 'Estética'
+        },
+        'lavanderia': {
+            type: 'variavel' as const,
+            category: 'servicos',
+            subcategory: 'limpeza',
+            name: 'Lavanderia'
+        },
+
+        // PETS (Variável)
+        'petshop': {
+            type: 'variavel' as const,
+            category: 'pets',
+            subcategory: 'petshop',
+            name: 'Pet Shop'
+        },
+        'veterinario': {
+            type: 'essencial' as const,
+            category: 'pets',
+            subcategory: 'veterinario',
+            name: 'Veterinário'
+        },
+
+        // BANCOS (Outros)
+        'nubank': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Nubank'
+        },
+        'inter': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Banco Inter'
+        },
+        'itau': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Itaú'
+        },
+        'bradesco': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Bradesco'
+        },
+        'santander': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Santander'
+        },
+        'caixa': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'banco',
+            name: 'Caixa Econômica'
         },
     };
 
