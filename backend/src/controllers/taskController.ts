@@ -3,8 +3,6 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middlewares/auth';
 import { logActivity } from '../services/activityService';
 import { addXp, removeXp } from '../services/xpService';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -105,44 +103,33 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
         const userId = req.userId!;
-        const logFile = path.join(__dirname, '../../debug_b.log');
 
-        const log = (msg: string) => {
-            const timestamp = new Date().toISOString();
-            fs.appendFileSync(logFile, `[${timestamp}] ${msg}\n`);
-            console.log(msg);
-        };
-
-        log(`🗑️ Deleting task: ${id} for user ${userId}`);
+        console.log('🗑️ Deleting task:', { id, userId });
 
         // Get task before deleting to check if it was completed
         const task = await prisma.task.findUnique({
             where: { id }
         });
 
-        log(`📋 Task found: ${JSON.stringify(task)}`);
+        console.log('📋 Task found:', task);
 
         if (!task || task.userId !== userId) {
-            log('❌ Task not found or unauthorized');
+            console.log('❌ Task not found or unauthorized');
             return res.status(404).json({ error: 'Tarefa não encontrada' });
         }
 
         // If task was completed, remove the XP
         if (task.status === 'completed' && task.attribute !== 'FINANCEIRO') {
-            const xpToRemove = task.xpValue || 5; // Fallback to 5 just in case
-            log(`⬇️ Removing XP: attribute=${task.attribute}, amount=${xpToRemove}`);
-
-            const result = await removeXp(userId, task.attribute, xpToRemove);
-            log(`✅ XP Removing Result: ${JSON.stringify(result)}`);
-        } else {
-            log(`ℹ️ No XP removal needed. Status=${task.status}, Attribute=${task.attribute}`);
+            const xpToRemove = task.xpValue || 10; // Fallback to default
+            console.log('⬇️ Removing XP:', { attribute: task.attribute, xpValue: xpToRemove });
+            await removeXp(userId, task.attribute, xpToRemove);
         }
 
         await prisma.task.delete({
             where: { id },
         });
 
-        log('✅ Task deleted successfully from DB');
+        console.log('✅ Task deleted successfully');
 
         await logActivity(userId, 'task_deleted', `Tarefa deletada: ${task.title}`);
 

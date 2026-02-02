@@ -620,12 +620,35 @@ function identifyEstablishmentAndCategory(text: string): {
         },
     };
 
+    // Two-pass detection:
+    // Pass 1: Look for actual service providers (exclude payment intermediaries)
+    // Pass 2: Look for payment intermediaries only if nothing found in Pass 1
+
+    const paymentIntermediaries = ['mercado pago', 'picpay', 'paypal', 'nubank', 'inter', 'itau', 'bradesco', 'santander', 'caixa'];
+
     // Sort keywords by length (longest first) to avoid false matches
-    // Example: "mercado pago" should match before "mercado"
     const sortedKeywords = Object.entries(establishments).sort((a, b) => b[0].length - a[0].length);
 
+    // Pass 1: Service providers (not payment intermediaries)
     for (const [keyword, info] of sortedKeywords) {
-        if (textLower.includes(keyword)) {
+        if (!paymentIntermediaries.includes(keyword) && textLower.includes(keyword)) {
+            // Special case: Don't match 'mercado' if it's part of 'mercado pago'
+            if (keyword === 'mercado' && textLower.includes('mercado pago')) {
+                continue;
+            }
+
+            return {
+                establishment: info.name,
+                category: info.category,
+                subcategory: info.subcategory,
+                categoryType: info.type,
+            };
+        }
+    }
+
+    // Pass 2: Payment intermediaries (fallback)
+    for (const [keyword, info] of sortedKeywords) {
+        if (paymentIntermediaries.includes(keyword) && textLower.includes(keyword)) {
             return {
                 establishment: info.name,
                 category: info.category,
