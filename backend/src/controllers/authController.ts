@@ -135,7 +135,7 @@ export const uploadAvatar = async (req: any, res: Response) => {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        const avatarUrl = `/uploads/${req.file.filename}`;
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
         const user = await prisma.user.update({
             where: { id: userId },
