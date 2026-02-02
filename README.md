@@ -9,7 +9,7 @@ Sistema full-stack de produtividade pessoal com dashboard centralizado, gestão 
 - 🎯 **Hábitos** - Acompanhamento diário com grade mensal
 - ✅ **Tarefas** - Gestão de tarefas com status e filtros
 - 💰 **Financeiro** - Controle de entradas/saídas com gráficos
-- 🤖 **Atlas** - Assistente IA que executa ações
+- 🤖 **Friday** - Assistente IA que executa ações
 - 📡 **Feed de Atividades** - Timeline de todas as ações
 - 🎨 **Design Moderno** - Dark mode com glassmorphism e neon
 
@@ -113,15 +113,15 @@ O frontend estará rodando em `http://localhost:3000`
 - Categorize transações
 - Visualize gráficos e estatísticas
 
-### 6. Atlas (Assistente IA)
-- Converse com o Atlas
+### 6. Friday (Assistente IA)
+- Converse com o Friday
 - Peça para criar tarefas: "Crie uma tarefa para estudar React"
 - Registre gastos: "Registre gasto de 50 reais em alimentação"
 - Peça resumos e sugestões
 
-## 🤖 Comandos do Atlas
+## 🤖 Comandos da Friday
 
-O Atlas pode executar ações automaticamente:
+O Friday pode executar ações automaticamente:
 
 - **Criar Tarefas**: "Crie uma tarefa para [descrição]"
 - **Registrar Gastos**: "Registre gasto de [valor] reais em [categoria]"
@@ -210,4 +210,4 @@ MIT
 
 ---
 
-**Trilha IA** - Seu segundo cérebro digital 🧠✨
+**Natron IA** - Seu segundo cérebro digital 🧠✨
