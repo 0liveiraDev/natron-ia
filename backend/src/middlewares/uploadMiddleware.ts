@@ -2,10 +2,27 @@ import multer from 'multer';
 import path from 'path';
 import { Request } from 'express';
 
+import fs from 'fs';
+
+// Resolve absolute path for uploads to be environment-agnostic
+const getUploadsPath = () => {
+    const cwd = process.cwd();
+    const paths = [
+        path.join(cwd, 'uploads'),
+        path.join(cwd, 'backend', 'uploads')
+    ];
+    for (const p of paths) {
+        if (fs.existsSync(p)) return p;
+    }
+    return paths[0];
+};
+
+const UPLOADS_PATH = getUploadsPath();
+
 // Configuração de armazenamento
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/receipts/');
+        cb(null, path.join(UPLOADS_PATH, 'receipts/'));
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -42,7 +59,7 @@ export const upload = multer({
 // Configuração para Avatar (Imagens)
 const avatarStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/avatars/');
+        cb(null, path.join(UPLOADS_PATH, 'avatars/'));
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

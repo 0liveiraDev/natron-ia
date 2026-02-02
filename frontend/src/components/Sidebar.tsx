@@ -19,7 +19,9 @@ const Sidebar: React.FC = () => {
         if (url.startsWith('http')) return url;
         const apiBase = import.meta.env.VITE_API_URL || 'https://natron-ia.onrender.com/api';
         const base = apiBase.replace('/api', '');
-        return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+        const fullUrl = `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+        console.log('🖼️ Avatar URL:', fullUrl);
+        return fullUrl;
     };
 
     useEffect(() => {
