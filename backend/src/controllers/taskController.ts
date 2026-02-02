@@ -103,24 +103,46 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
         const userId = req.userId!;
+        const fs = require('fs');
+        const path = require('path');
+        const logFile = path.join(__dirname, '../../debug_b.log');
+
+        const log = (msg: string) => {
+            const timestamp = new Date().toISOString();
+            fs.appendFileSync(logFile, `[${timestamp}] ${msg}\n`);
+            console.log(msg);
+        };
+
+        log(`🗑️ Deleting task: ${id} for user ${userId}`);
 
         // Get task before deleting to check if it was completed
         const task = await prisma.task.findUnique({
             where: { id }
         });
 
+        log(`📋 Task found: ${JSON.stringify(task)}`);
+
         if (!task || task.userId !== userId) {
+            log('❌ Task not found or unauthorized');
             return res.status(404).json({ error: 'Tarefa não encontrada' });
         }
 
         // If task was completed, remove the XP
         if (task.status === 'completed' && task.attribute !== 'FINANCEIRO') {
-            await removeXp(userId, task.attribute, task.xpValue);
+            const xpToRemove = task.xpValue || 5; // Fallback to 5 just in case
+            log(`⬇️ Removing XP: attribute=${task.attribute}, amount=${xpToRemove}`);
+
+            const result = await removeXp(userId, task.attribute, xpToRemove);
+            log(`✅ XP Removing Result: ${JSON.stringify(result)}`);
+        } else {
+            log(`ℹ️ No XP removal needed. Status=${task.status}, Attribute=${task.attribute}`);
         }
 
         await prisma.task.delete({
             where: { id },
         });
+
+        log('✅ Task deleted successfully from DB');
 
         await logActivity(userId, 'task_deleted', `Tarefa deletada: ${task.title}`);
 
