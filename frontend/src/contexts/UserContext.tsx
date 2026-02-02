@@ -69,6 +69,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (token) {
             fetchUser();
         } else {
+            // Important: Set loading to false even if no token
             setLoading(false);
         }
     }, []);
