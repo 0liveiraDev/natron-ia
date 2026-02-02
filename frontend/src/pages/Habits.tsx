@@ -97,6 +97,7 @@ const Habits: React.FC = () => {
             await api.delete(`/habits/${id}`);
             showToast('Hábito excluído', 'success');
             fetchData();
+            await refreshUser(); // Update XP in real-time
         } catch (error) {
             showToast('Erro ao excluir', 'error');
         }

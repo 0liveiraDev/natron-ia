@@ -8,6 +8,7 @@
         "build": "tsc",
         "start": "node dist/server.js",
         "reset-xp": "tsx scripts/reset_xp.ts",
+        "wipe-all": "tsx scripts/wipe_all_data.ts",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:studio": "prisma studio"
