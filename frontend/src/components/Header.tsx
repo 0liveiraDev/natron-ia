@@ -48,6 +48,13 @@ const Header: React.FC = () => {
         day: 'numeric',
     });
 
+    // Shorter date for mobile
+    const currentDateMobile = new Date().toLocaleDateString('pt-BR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+    });
+
     const getAvatarUrl = (url: string | null | undefined) => {
         if (!url) return null;
         if (url.startsWith('http')) return url;
@@ -126,7 +133,8 @@ const Header: React.FC = () => {
             <div className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex items-center gap-2">
                     <h2 className="text-sm sm:text-xl font-semibold capitalize truncate">
-                        {currentDate}
+                        <span className="hidden sm:inline">{currentDate}</span>
+                        <span className="sm:hidden">{currentDateMobile}</span>
                     </h2>
 
                     {/* Mobile Profile Info */}
@@ -145,15 +153,16 @@ const Header: React.FC = () => {
                                 )}
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-[10px] font-bold truncate text-white uppercase tracking-wider leading-none">
+                                <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-wide leading-none max-w-[60px] truncate">
                                         {user.name.split(' ')[0]}
                                     </span>
                                     <span
-                                        className="text-[8px] font-black uppercase tracking-widest leading-none px-1 rounded-[2px]"
+                                        className="text-[7px] font-black uppercase tracking-tight leading-none px-1 py-0.5 rounded-[2px] whitespace-nowrap"
                                         style={{ color: currentColor, backgroundColor: `${currentColor}15` }}
+                                        title={user.rank}
                                     >
-                                        {user.rank}
+                                        {user.rank === 'Estudante da Academia' ? 'ESTUDANTE' : user.rank}
                                     </span>
                                 </div>
                                 <div className="w-20 h-1 bg-dark-600 rounded-full overflow-hidden">
