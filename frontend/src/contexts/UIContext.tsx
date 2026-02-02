@@ -8,18 +8,18 @@ interface UIContextType {
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [isMobileMode, setIsMobileMode] = useState<boolean>(() => {
-        const saved = localStorage.getItem('mobileMode');
-        if (saved !== null) return saved === 'true';
-
-        // Automatic detection if no preference is saved
-        return window.innerWidth < 768;
-    });
+    const [isMobileMode, setIsMobileMode] = useState<boolean>(() => window.innerWidth < 768);
 
     useEffect(() => {
-        localStorage.setItem('mobileMode', String(isMobileMode));
+        const handleResize = () => {
+            setIsMobileMode(window.innerWidth < 768);
+        };
 
-        // When mobile mode is forced, we might want to add a class to body
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
         if (isMobileMode) {
             document.body.classList.add('force-mobile');
         } else {
@@ -28,7 +28,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }, [isMobileMode]);
 
     const toggleMobileMode = () => {
-        setIsMobileMode(prev => !prev);
+        // Manual toggle removed to respect automatic device detection
+        console.log("Toggle disabled: the mode is now purely automatic.");
     };
 
     return (

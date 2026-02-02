@@ -10,7 +10,7 @@ const Header: React.FC = () => {
     const navigate = useNavigate();
     const { user, clearUser } = useUser();
     const { logout } = useAuth();
-    const { isMobileMode, toggleMobileMode } = useUI();
+    const { isMobileMode } = useUI();
     const [isInstalled, setIsInstalled] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
@@ -186,17 +186,16 @@ const Header: React.FC = () => {
                     </button>
                 )}
 
-                {/* Mobile Mode Toggle */}
-                <button
-                    onClick={toggleMobileMode}
-                    className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${isMobileMode ? 'bg-[#00ff88]/10 text-[#00ff88]' : 'hover:bg-white/5 text-gray-400'}`}
-                    title={isMobileMode ? "Mudar para modo Desktop" : "Mudar para modo Mobile"}
+                {/* Device Mode Indicator (Read-only) */}
+                <div
+                    className={`p-2 rounded-lg flex items-center gap-2 ${isMobileMode ? 'bg-[#00ff88]/10 text-[#00ff88]' : 'bg-white/5 text-gray-400'}`}
+                    title={isMobileMode ? "Modo Mobile Ativo" : "Modo Desktop Ativo"}
                 >
                     {isMobileMode ? <Smartphone size={18} /> : <Monitor size={18} />}
                     <span className="hidden lg:inline text-xs font-bold uppercase tracking-wider">
                         {isMobileMode ? "Mobile" : "Desktop"}
                     </span>
-                </button>
+                </div>
 
                 {!isInstalled && !isMobileMode && (
                     <button
