@@ -83,37 +83,37 @@ const Tasks: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-20 md:pb-0">
             <ToastContainer />
 
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                    Tarefas <CheckSquare size={32} className="text-[#8e8e93] animate-pulse" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                    Tarefas <CheckSquare size={28} className="text-[#8e8e93] animate-pulse" />
                 </h1>
-                <button onClick={() => setShowModal(true)} className="btn-neon">
+                <button onClick={() => setShowModal(true)} className="btn-neon w-full sm:w-auto text-center">
                     + Nova Tarefa
                 </button>
             </div>
 
             {/* Filters */}
-            <div className="flex gap-3">
+            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                 <button
                     onClick={() => setFilter('all')}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${filter === 'all' ? 'btn-neon' : 'btn-secondary'
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === 'all' ? 'btn-neon' : 'btn-secondary'
                         }`}
                 >
                     Todas
                 </button>
                 <button
                     onClick={() => setFilter('pending')}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${filter === 'pending' ? 'btn-neon' : 'btn-secondary'
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === 'pending' ? 'btn-neon' : 'btn-secondary'
                         }`}
                 >
                     Pendentes
                 </button>
                 <button
                     onClick={() => setFilter('completed')}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${filter === 'completed' ? 'btn-neon' : 'btn-secondary'
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${filter === 'completed' ? 'btn-neon' : 'btn-secondary'
                         }`}
                 >
                     Concluídas
@@ -130,43 +130,45 @@ const Tasks: React.FC = () => {
                         className={`dashboard-card ${task.status === 'completed' ? 'opacity-60' : ''
                             }`}
                     >
-                        <div className="flex items-start gap-4">
-                            <button
-                                onClick={() => handleToggleStatus(task)}
-                                className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.status === 'completed'
-                                    ? 'bg-neon-green border-neon-green'
-                                    : 'border-gray-500 hover:border-neon-green'
-                                    }`}
-                            >
-                                {task.status === 'completed' && <span className="text-dark-900 text-sm">✓</span>}
-                            </button>
-
-                            <div className="flex-1">
-                                <h3
-                                    className={`text-lg font-semibold mb-1 ${task.status === 'completed' ? 'line-through text-gray-500' : ''
+                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                            <div className="flex items-start gap-4 w-full">
+                                <button
+                                    onClick={() => handleToggleStatus(task)}
+                                    className={`mt-1 shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.status === 'completed'
+                                        ? 'bg-neon-green border-neon-green'
+                                        : 'border-gray-500 hover:border-neon-green'
                                         }`}
                                 >
-                                    {task.title}
-                                </h3>
-                                {task.description && (
-                                    <p className="text-sm text-gray-400 mb-2">{task.description}</p>
-                                )}
-                                {task.dueDate && (
-                                    <p className="text-xs text-gray-500">
-                                        📅 {new Date(task.dueDate).toLocaleDateString('pt-BR')}
-                                    </p>
-                                )}
+                                    {task.status === 'completed' && <span className="text-dark-900 text-sm">✓</span>}
+                                </button>
+
+                                <div className="flex-1 min-w-0">
+                                    <h3
+                                        className={`text-base sm:text-lg font-semibold mb-1 truncate ${task.status === 'completed' ? 'line-through text-gray-500' : ''
+                                            }`}
+                                    >
+                                        {task.title}
+                                    </h3>
+                                    {task.description && (
+                                        <p className="text-sm text-gray-400 mb-2 line-clamp-2">{task.description}</p>
+                                    )}
+                                    {task.dueDate && (
+                                        <p className="text-xs text-gray-500">
+                                            📅 {new Date(task.dueDate).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-neon-green bg-neon-green/10 px-1.5 py-0.5 rounded-full border border-neon-green/20">
+                            <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:self-center border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                <span className="text-[10px] font-bold text-neon-green bg-neon-green/10 px-2 py-1 rounded-full border border-neon-green/20 whitespace-nowrap">
                                     +{task.xpValue || 5} XP
                                 </span>
                                 <button
                                     onClick={() => handleDelete(task.id)}
                                     className="text-red-400 hover:text-red-300 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
                                 >
-                                    <Trash2 size={20} />
+                                    <Trash2 size={18} />
                                 </button>
                             </div>
                         </div>

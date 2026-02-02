@@ -209,35 +209,39 @@ const Finance: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-6 sm:space-y-8 pb-24 md:pb-10">
             <ToastContainer />
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                    FINANCEIRO <Wallet size={32} className="text-[#00ff88] animate-pulse" />
-                </h1>
-
-                <div className="flex items-center gap-4 bg-[#0f0f0f] rounded-full px-2 py-1 border border-[#1a1a1a]">
-                    <button onClick={() => handleMonthChange('prev')} className="p-2 hover:text-[#00ff88] transition"><ChevronLeft size={20} /></button>
-                    <span className="text-sm font-bold uppercase w-32 text-center text-gray-300">
-                        {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                    </span>
-                    <button onClick={() => handleMonthChange('next')} className="p-2 hover:text-[#00ff88] transition"><ChevronRight size={20} /></button>
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                <div className="flex items-center justify-between w-full xl:w-auto">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                        FINANCEIRO <Wallet size={28} className="text-[#00ff88] animate-pulse" />
+                    </h1>
                 </div>
 
-                <div className="flex gap-2">
-                    <button onClick={() => { setConfigMode('general'); setShowConfigModal(true); }} className="btn-secondary flex items-center gap-2">
-                        <Settings size={16} /> Config
-                    </button>
-                    <button onClick={() => setShowTransactionModal(true)} className="btn-neon flex items-center gap-2">
-                        <Plus size={16} /> Nova
-                    </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full xl:w-auto">
+                    <div className="flex items-center justify-between bg-[#0f0f0f] rounded-xl sm:rounded-full px-4 py-2 border border-[#1a1a1a] flex-1 sm:flex-none">
+                        <button onClick={() => handleMonthChange('prev')} className="p-1 hover:text-[#00ff88] transition"><ChevronLeft size={20} /></button>
+                        <span className="text-xs sm:text-sm font-bold uppercase w-full sm:w-32 text-center text-gray-300">
+                            {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                        </span>
+                        <button onClick={() => handleMonthChange('next')} className="p-1 hover:text-[#00ff88] transition"><ChevronRight size={20} /></button>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button onClick={() => { setConfigMode('general'); setShowConfigModal(true); }} className="flex-1 sm:flex-none btn-secondary flex items-center justify-center gap-2 py-2.5">
+                            <Settings size={16} /> <span className="sm:inline">Config</span>
+                        </button>
+                        <button onClick={() => setShowTransactionModal(true)} className="flex-1 sm:flex-none btn-neon flex items-center justify-center gap-2 py-2.5">
+                            <Plus size={16} /> <span className="sm:inline">Nova</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Values Row (Top) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
                 {/* Saldo Global (Featured) */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dashboard-card group bg-[#00ff88]/5 border-[#00ff88]/20">
                     <div className="flex justify-between items-start mb-2">
@@ -299,8 +303,8 @@ const Finance: React.FC = () => {
 
             {/* Evolution Chart */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="dashboard-card">
-                <h3 className="text-sm font-bold uppercase mb-6 text-white">Evolução nos últimos 6 meses</h3>
-                <div className="h-[250px] w-full">
+                <h3 className="text-xs sm:text-sm font-bold uppercase mb-6 text-white">Evolução nos últimos 6 meses</h3>
+                <div className="h-[180px] sm:h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={evolutionData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
@@ -320,33 +324,33 @@ const Finance: React.FC = () => {
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="flex justify-center gap-6 mt-4">
+                <div className="flex justify-center flex-wrap gap-4 sm:gap-6 mt-4">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-1 bg-[#00ff88] rounded-full"></div>
-                        <span className="text-xs text-gray-400">Entradas</span>
+                        <span className="text-[10px] sm:text-xs text-gray-400">Entradas</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-1 bg-[#ff3b30] rounded-full"></div>
-                        <span className="text-xs text-gray-400">Saídas</span>
+                        <span className="text-[10px] sm:text-xs text-gray-400">Saídas</span>
                     </div>
                 </div>
             </motion.div>
 
             {/* Orçamento Mensal Bar */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dashboard-card">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold uppercase flex items-center gap-2">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dashboard-card overflow-hidden">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <h3 className="text-xs sm:text-sm font-bold uppercase flex items-center gap-2">
                         <Settings size={14} className="text-gray-400" /> Orçamento Mensal
                     </h3>
-                    <div className="flex items-center gap-4">
-                        <span className="text-xs text-gray-500">{config.monthlyBudget > 0 ? `${budgetProgress.toFixed(1)}% utilizado` : 'Não definido'}</span>
-                        <button onClick={() => { setConfigMode('monthly'); setShowConfigModal(true); }} className="text-xs text-gray-500 hover:text-white flex items-center gap-1">
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+                        <span className="text-[10px] sm:text-xs text-gray-500">{config.monthlyBudget > 0 ? `${budgetProgress.toFixed(1)}% utilizado` : 'Não definido'}</span>
+                        <button onClick={() => { setConfigMode('monthly'); setShowConfigModal(true); }} className="text-[10px] sm:text-xs text-gray-500 hover:text-white flex items-center gap-1">
                             <Settings size={12} /> Editar
                         </button>
                     </div>
                 </div>
 
-                <div className="relative h-4 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div className="relative h-3 sm:h-4 bg-[#1a1a1a] rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(budgetProgress, 100)}%` }}
@@ -354,7 +358,7 @@ const Finance: React.FC = () => {
                     />
                 </div>
 
-                <div className="flex justify-between mt-2 text-xs">
+                <div className="flex flex-col sm:flex-row justify-between mt-2 gap-1 text-[10px] sm:text-xs">
                     <span className="text-gray-400">
                         Gasto: <span className="text-white font-bold">{formatCurrency(monthlyExpenses)}</span> de <span className="text-gray-500">{formatCurrency(config.monthlyBudget)}</span>
                     </span>
@@ -442,28 +446,28 @@ const Finance: React.FC = () => {
 
             {/* Transactions List */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dashboard-card">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                    <h3 className="text-sm font-bold uppercase">Transações do Mês</h3>
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                    <h3 className="text-xs sm:text-sm font-bold uppercase">Transações do Mês</h3>
 
-                    <div className="flex gap-2 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                        <div className="relative flex-1 lg:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
                             <input
                                 type="text"
                                 placeholder="Buscar..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-[#00ff88]"
+                                className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg pl-10 pr-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none focus:border-[#00ff88]"
                             />
                         </div>
                         <select
                             value={filterType}
                             onChange={(e: any) => setFilterType(e.target.value)}
-                            className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2 text-sm text-white focus:outline-none"
+                            className="bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-2.5 sm:py-2 text-sm text-white focus:outline-none cursor-pointer"
                         >
-                            <option value="all">Todas</option>
-                            <option value="entrada">Entradas</option>
-                            <option value="saida">Saídas</option>
+                            <option value="all">Todas as transações</option>
+                            <option value="entrada">Apenas Entradas</option>
+                            <option value="saida">Apenas Saídas</option>
                         </select>
                     </div>
                 </div>
@@ -471,33 +475,33 @@ const Finance: React.FC = () => {
                 <div className="space-y-3">
                     {displayedTransactions.length === 0 && (
                         <div className="text-center py-10 text-gray-500">
-                            <p className="mb-2">Nenhuma transação encontrada neste mês.</p>
-                            <p className="text-xs text-gray-600">
-                                Use as setas ← → acima para navegar entre os meses ou clique em "Nova" para adicionar uma transação.
+                            <p className="mb-2 text-sm sm:text-base">Nenhuma transação encontrada neste mês.</p>
+                            <p className="text-[10px] sm:text-xs text-gray-600">
+                                Use as setas ← → acima para navegar entre os meses ou clique em "Nova" para adicionar.
                             </p>
                         </div>
                     )}
                     {displayedTransactions.map((t) => (
-                        <div key={t.id} className="flex items-center justify-between p-4 rounded-xl bg-[#1a1a1a]/40 hover:bg-[#1a1a1a] transition border border-transparent hover:border-[#333] group">
-                            <div className="flex items-center gap-4">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORIES[t.category]?.color || '#808080' }} />
-                                <div>
-                                    <p className="font-bold text-base text-white">{t.description || CATEGORIES[t.category]?.label}</p>
-                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                        <span>{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                        <div key={t.id} className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-[#1a1a1a]/40 hover:bg-[#1a1a1a] transition border border-transparent hover:border-[#333] group overflow-hidden">
+                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                <div className="hidden sm:block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORIES[t.category]?.color || '#808080' }} />
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-bold text-sm sm:text-base text-white truncate">{t.description || CATEGORIES[t.category]?.label}</p>
+                                    <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-500 mt-0.5">
+                                        <span className="whitespace-nowrap">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
                                         <span>•</span>
-                                        <span className="flex items-center gap-1">
-                                            {CATEGORIES[t.category]?.icon} {CATEGORIES[t.category]?.label}
+                                        <span className="flex items-center gap-1 truncate max-w-[100px] sm:max-w-none">
+                                            {CATEGORIES[t.category]?.icon} <span className="truncate">{CATEGORIES[t.category]?.label}</span>
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
-                                <span className={`font-mono font-bold ${t.type === 'entrada' ? 'text-[#00ff88]' : 'text-[#ff3b30]'}`}>
+                            <div className="flex items-center gap-3 sm:gap-6 shrink-0 ml-4">
+                                <span className={`font-mono font-bold text-sm sm:text-base whitespace-nowrap ${t.type === 'entrada' ? 'text-[#00ff88]' : 'text-[#ff3b30]'}`}>
                                     {t.type === 'entrada' ? '+' : '-'} {formatCurrency(t.amount)}
                                 </span>
-                                <button onClick={() => handleDelete(t.id)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition">
+                                <button onClick={() => handleDelete(t.id)} className="opacity-100 sm:opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition-all p-1">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

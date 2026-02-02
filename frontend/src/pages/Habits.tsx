@@ -111,25 +111,21 @@ const Habits: React.FC = () => {
 
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-6 sm:space-y-8 pb-24 md:pb-10">
             <ToastContainer />
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                    HÁBITOS <Target size={32} className="text-red-600 animate-pulse" />
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                    HÁBITOS <Target size={28} className="text-red-600 animate-pulse" />
                 </h1>
 
-                <div className="flex items-center gap-4 bg-[#0f0f0f] rounded-full px-2 py-1 border border-[#1a1a1a]">
-                    <button onClick={() => handleMonthChange('prev')} className="p-2 hover:text-red-500 transition"><ChevronLeft size={20} /></button>
-                    <span className="text-sm font-bold uppercase w-32 text-center text-gray-300">
+                <div className="flex items-center justify-between w-full lg:w-auto gap-4 bg-[#0f0f0f] rounded-xl sm:rounded-full px-4 py-2 border border-[#1a1a1a]">
+                    <button onClick={() => handleMonthChange('prev')} className="p-1 hover:text-red-500 transition"><ChevronLeft size={20} /></button>
+                    <span className="text-xs sm:text-sm font-bold uppercase w-full sm:w-32 text-center text-gray-300">
                         {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                     </span>
-                    <button onClick={() => handleMonthChange('next')} className="p-2 hover:text-red-500 transition"><ChevronRight size={20} /></button>
-                </div>
-
-                <div className="invisible">
-                    {/* Spacer to balance header if needed, or keep Filter here if desired */}
+                    <button onClick={() => handleMonthChange('next')} className="p-1 hover:text-red-500 transition"><ChevronRight size={20} /></button>
                 </div>
             </div>
 
@@ -138,8 +134,8 @@ const Habits: React.FC = () => {
 
                 {/* Progresso do Mês Chart */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="dashboard-card border border-[#333]/50">
-                    <h3 className="text-sm font-bold uppercase mb-4 text-gray-400">Progresso do Mês</h3>
-                    <div className="h-[150px] w-full">
+                    <h3 className="text-xs sm:text-sm font-bold uppercase mb-4 text-gray-400">Progresso do Mês</h3>
+                    <div className="h-[120px] sm:h-[150px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={dailyProgress}>
                                 <defs>

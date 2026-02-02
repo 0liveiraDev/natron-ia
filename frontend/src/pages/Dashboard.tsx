@@ -217,39 +217,39 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         {/* Bottom Stats */}
-                        <div className="grid grid-cols-3 gap-12 mt-8 w-full px-12">
+                        <div className="grid grid-cols-3 gap-6 sm:gap-12 mt-6 w-full px-4 sm:px-12">
                             <div className="text-center">
                                 <div className="text-[10px] text-[#ff3b30] uppercase mb-1">Físico</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpPhysical || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpPhysical || 0}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-[10px] text-[#ffd60a] uppercase mb-1">Disciplina</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpDiscipline || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpDiscipline || 0}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-[10px] text-[#b800ff] uppercase mb-1">Mental</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpMental || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpMental || 0}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-[10px] text-[#ff9500] uppercase mb-1">Intelecto</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpIntellect || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpIntellect || 0}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-[10px] text-[#00d4ff] uppercase mb-1">Produtividade</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpProductivity || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpProductivity || 0}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-[10px] text-[#00ff88] uppercase mb-1">Financeiro</div>
-                                <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpFinancial || 0}</div>
+                                <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpFinancial || 0}</div>
                             </div>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* Right Side - Charts Grid */}
-                <div className="grid grid-rows-2 gap-6">
+                <div className="grid grid-rows-1 xl:grid-rows-2 gap-6">
                     {/* Top Right - Progress & Goals */}
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* Weekly Habits Chart */}
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
@@ -336,7 +336,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Bottom Row - Finance */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
 
                 {/* Gastos da Semana - Bar Chart placeholder for now */}
                 <motion.div

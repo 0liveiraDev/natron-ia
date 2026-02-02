@@ -24,7 +24,10 @@ const Atlas: React.FC = () => {
     const { showToast, ToastContainer } = useToast();
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Delay scroll to ensure content is rendered
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     };
 
     useEffect(() => {
@@ -257,17 +260,17 @@ const Atlas: React.FC = () => {
         <div className="h-full flex flex-col">
             <ToastContainer />
 
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-                    Friday <Bot size={32} className="text-[#ff9500] animate-pulse" />
+            <div className="mb-3 sm:mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                    Friday <Bot size={28} className="text-[#ff9500] animate-pulse" />
                 </h1>
-                <p className="text-gray-400 mt-1">Seu assistente pessoal inteligente</p>
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">Seu assistente pessoal inteligente</p>
             </div>
 
             {/* Chat Container */}
-            <div className="flex-1 glass-card p-6 flex flex-col overflow-hidden">
+            <div className="flex-1 glass-card p-3 sm:p-6 flex flex-col overflow-hidden">
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 mb-4 pr-2">
                     {messages.map((message, index) => (
                         <motion.div
                             key={index}
@@ -276,12 +279,12 @@ const Atlas: React.FC = () => {
                             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                             <div
-                                className={`max-w-[70%] p-4 rounded-2xl ${message.role === 'user'
-                                    ? 'bg-gradient-to-r from-neon-green to-neon-blue text-dark-900'
-                                    : 'glass-card'
+                                className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-4 rounded-2xl ${message.role === 'user'
+                                    ? 'bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-medium'
+                                    : 'glass-card border border-white/5'
                                     }`}
                             >
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                <p className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{message.content}</p>
                             </div>
                         </motion.div>
                     ))}
@@ -305,102 +308,112 @@ const Atlas: React.FC = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
-                <form onSubmit={handleSend} className="flex gap-3">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Digite sua mensagem..."
-                        className="flex-1 input-field"
-                        disabled={loading}
-                    />
-                    <label
-                        htmlFor="file-upload"
-                        className={`btn-secondary px-4 cursor-pointer flex items-center justify-center ${uploadingFile ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title="Enviar nota fiscal em PDF"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                            />
-                        </svg>
-                    </label>
-                    <input
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf,application/pdf"
-                        className="hidden"
-                        disabled={loading || uploadingFile}
-                        onChange={handleFileUpload}
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading || !input.trim()}
-                        className="btn-neon px-8"
-                    >
-                        Enviar
-                    </button>
-                </form>
-
-                {/* Confirmation Buttons for Pending Receipt */}
-                {pendingReceipt && (
-                    <div className="mt-4 flex gap-3">
+                {/* Input Area */}
+                <div className="space-y-4 border-t border-white/5 pt-4">
+                    {/* Suggestions - Scrollable on mobile */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                         <button
-                            onClick={() => confirmReceipt(pendingReceipt)}
+                            onClick={() => setInput('Registre gasto de 50 reais em alimentação')}
+                            className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
                             disabled={loading}
-                            className="flex-1 btn-neon py-3"
                         >
-                            ✅ Confirmar Registro
+                            💸 Registrar gasto
                         </button>
                         <button
-                            onClick={() => {
-                                setPendingReceipt(null);
-                                setMessages((prev) => [
-                                    ...prev,
-                                    { role: 'assistant', content: '❌ Registro cancelado. Posso ajudar com algo mais?' },
-                                ]);
-                            }}
+                            onClick={() => setInput('Crie uma tarefa para estudar React')}
+                            className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
                             disabled={loading}
-                            className="flex-1 btn-secondary py-3"
                         >
-                            ❌ Cancelar
+                            ✅ Criar tarefa
+                        </button>
+                        <button
+                            onClick={() => setInput('Como está meu progresso hoje?')}
+                            className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
+                            disabled={loading}
+                        >
+                            📊 Ver progresso
                         </button>
                     </div>
-                )}
 
-                {/* Suggestions */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                        onClick={() => setInput('Registre gasto de 50 reais em alimentação')}
-                        className="text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all"
-                        disabled={loading}
-                    >
-                        💸 Registrar gasto
-                    </button>
-                    <button
-                        onClick={() => setInput('Crie uma tarefa para estudar React')}
-                        className="text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all"
-                        disabled={loading}
-                    >
-                        ✅ Criar tarefa
-                    </button>
-                    <button
-                        onClick={() => setInput('Como está meu progresso hoje?')}
-                        className="text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all"
-                        disabled={loading}
-                    >
-                        📊 Ver progresso
-                    </button>
+                    <form onSubmit={handleSend} className="flex gap-2 sm:gap-3">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Pergunte à Friday..."
+                            className="flex-1 input-field py-2.5 sm:py-2 text-sm"
+                            disabled={loading}
+                        />
+                        <div className="flex gap-2">
+                            <label
+                                htmlFor="file-upload"
+                                className={`btn-secondary p-2.5 sm:px-4 cursor-pointer flex items-center justify-center ${uploadingFile ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title="Enviar nota fiscal"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                    />
+                                </svg>
+                            </label>
+                            <input
+                                id="file-upload"
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                className="hidden"
+                                disabled={loading || uploadingFile}
+                                onChange={handleFileUpload}
+                            />
+                            <button
+                                type="submit"
+                                disabled={loading || !input.trim()}
+                                className="btn-neon px-4 sm:px-8 group"
+                            >
+                                <span className="hidden sm:inline">Enviar</span>
+                                <span className="sm:hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Confirmation Buttons for Pending Receipt */}
+                    {pendingReceipt && (
+                        <div className="flex gap-2 pt-2">
+                            <button
+                                onClick={() => confirmReceipt(pendingReceipt)}
+                                disabled={loading}
+                                className="flex-1 btn-neon py-2.5 text-xs font-bold"
+                            >
+                                ✅ Confirmar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setPendingReceipt(null);
+                                    setMessages((prev) => [
+                                        ...prev,
+                                        { role: 'assistant', content: '❌ Registro cancelado.' },
+                                    ]);
+                                }}
+                                disabled={loading}
+                                className="flex-1 btn-secondary py-2.5 text-xs font-bold"
+                            >
+                                ❌ Cancelar
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
