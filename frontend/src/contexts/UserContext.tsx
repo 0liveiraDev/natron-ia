@@ -38,7 +38,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(response.data);
         } catch (error) {
             console.error('Error fetching user:', error);
+            // Clear invalid token if user fetch fails
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
         } finally {
+            // CRITICAL: Always set loading to false
             setLoading(false);
         }
     };
