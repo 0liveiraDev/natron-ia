@@ -1,0 +1,2 @@
+// Test image for OCR
+console.log('Test file created for OCR testing');

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <title>Natron IA - Sistema de Produtividade</title>
+  <style>
+    /* Prevent white flash on load */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #f5f5f7;
+    }
+
+    #root {
+      min-height: 100vh;
+      background-color: #0a0a0a;
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid #1a1a1a;
+      border-top: 3px solid #00ff88;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <div class="loading-spinner"></div>
+  </div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

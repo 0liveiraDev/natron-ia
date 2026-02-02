@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  avatarUrl String?
+  role      String   @default("Viajante")
+
+  habits       Habit[]
+  tasks        Task[]
+  transactions Transaction[]
+  activities   ActivityLog[]
+  financialConfig FinancialConfig?
+
+  // Gamification Stats
+  xpPhysical      Float    @default(0)
+  xpDiscipline    Float    @default(0)
+  xpMental        Float    @default(0)
+  xpIntellect     Float    @default(0)
+  xpProductivity  Float    @default(0)
+  xpFinancial     Float    @default(0)
+  
+  level           Int      @default(1)
+  currentXp       Float    @default(0)
+  rank            String   @default("Estudante da Academia")
+}
+
+enum Attribute {
+  FISICO
+  DISCIPLINA
+  MENTAL
+  INTELECTO
+  PRODUTIVIDADE
+  FINANCEIRO
+  NENHUM
+}
+
+model FinancialConfig {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthlyBudget  Float    @default(0)
+  initialReserve Float    @default(0)
+  categoryBudgets Json?   // Stores per-category budgets like { "alimentacao": 500 }
+  updatedAt      DateTime @updatedAt
+}
+
+model Habit {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Gamification
+  attribute   Attribute @default(PRODUTIVIDADE)
+  xpValue     Int       @default(5)
+
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+// ... (HabitLog remains unchanged)
+
+model HabitLog {
+  id          String   @id @default(uuid())
+  habitId     String
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  completed   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([habitId])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("pending") // pending, completed
+  dueDate     DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Gamification
+  attribute   Attribute @default(PRODUTIVIDADE)
+  xpValue     Int       @default(10)
+
+  @@index([userId])
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  amount      Float
+  type        String   // entrada, saida
+  category    String   // alimentacao, assinaturas, lazer, outros
+  description String?
+  date        DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  type        String   // task_created, habit_completed, transaction_added
+  description String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}

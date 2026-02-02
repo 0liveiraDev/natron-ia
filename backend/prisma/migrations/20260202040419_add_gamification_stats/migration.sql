@@ -1,0 +1,41 @@
+-- CreateEnum
+CREATE TYPE "Attribute" AS ENUM ('FISICO', 'DISCIPLINA', 'MENTAL', 'INTELECTO', 'PRODUTIVIDADE', 'FINANCEIRO', 'NENHUM');
+
+-- AlterTable
+ALTER TABLE "Habit" ADD COLUMN     "attribute" "Attribute" NOT NULL DEFAULT 'PRODUTIVIDADE',
+ADD COLUMN     "xpValue" INTEGER NOT NULL DEFAULT 5;
+
+-- AlterTable
+ALTER TABLE "Task" ADD COLUMN     "attribute" "Attribute" NOT NULL DEFAULT 'PRODUTIVIDADE',
+ADD COLUMN     "xpValue" INTEGER NOT NULL DEFAULT 10;
+
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "avatarUrl" TEXT,
+ADD COLUMN     "currentXp" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "level" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "rank" TEXT NOT NULL DEFAULT 'Estudante da Academia',
+ADD COLUMN     "role" TEXT NOT NULL DEFAULT 'Viajante',
+ADD COLUMN     "xpDiscipline" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "xpFinancial" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "xpIntellect" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "xpMental" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "xpPhysical" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "xpProductivity" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- CreateTable
+CREATE TABLE "FinancialConfig" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "monthlyBudget" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "initialReserve" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "categoryBudgets" JSONB,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "FinancialConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FinancialConfig_userId_key" ON "FinancialConfig"("userId");
+
+-- AddForeignKey
+ALTER TABLE "FinancialConfig" ADD CONSTRAINT "FinancialConfig_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
