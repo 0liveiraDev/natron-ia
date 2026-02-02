@@ -104,9 +104,25 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
         const { id } = req.params;
         const userId = req.userId!;
 
-        await prisma.task.deleteMany({
-            where: { id, userId },
+        // Get task before deleting to check if it was completed
+        const task = await prisma.task.findUnique({
+            where: { id }
         });
+
+        if (!task || task.userId !== userId) {
+            return res.status(404).json({ error: 'Tarefa não encontrada' });
+        }
+
+        // If task was completed, remove the XP
+        if (task.status === 'completed' && task.attribute !== 'FINANCEIRO') {
+            await removeXp(userId, task.attribute, task.xpValue);
+        }
+
+        await prisma.task.delete({
+            where: { id },
+        });
+
+        await logActivity(userId, 'task_deleted', `Tarefa deletada: ${task.title}`);
 
         res.json({ message: 'Tarefa deletada com sucesso' });
     } catch (error) {
