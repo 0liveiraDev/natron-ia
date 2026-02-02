@@ -1,4 +1,4 @@
-# Trilha IA - Sistema de Produtividade Pessoal 🚀
+# Natron IA - Sistema de Produtividade Pessoal 🚀
 
 Sistema full-stack de produtividade pessoal com dashboard centralizado, gestão de hábitos, tarefas, finanças e assistente IA integrado (Atlas).
 
