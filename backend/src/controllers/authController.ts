@@ -40,6 +40,7 @@ export const register = async (req: Request, res: Response) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                avatarUrl: user.avatarUrl,
             },
             token,
         });
@@ -79,6 +80,7 @@ export const login = async (req: Request, res: Response) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                avatarUrl: user.avatarUrl,
             },
             token,
         });
@@ -154,9 +156,8 @@ export const uploadAvatar = async (req: any, res: Response) => {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        // Construir URL completa da imagem
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const avatarUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
+        // Guardar caminho relativo para flexibilidade entre ambientes
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
         const user = await prisma.user.update({
             where: { id: userId },
