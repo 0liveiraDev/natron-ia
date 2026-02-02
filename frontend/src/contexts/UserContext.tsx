@@ -71,12 +71,24 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     useEffect(() => {
         // Only fetch user if token exists (user is logged in)
         const token = localStorage.getItem('token');
+
+        // Set a timeout to prevent infinite loading (especially important for PWA)
+        const timeoutId = setTimeout(() => {
+            console.warn('User fetch timeout - forcing loading to false');
+            setLoading(false);
+        }, 5000); // 5 second timeout
+
         if (token) {
-            fetchUser();
+            fetchUser().finally(() => {
+                clearTimeout(timeoutId);
+            });
         } else {
             // Important: Set loading to false even if no token
             setLoading(false);
+            clearTimeout(timeoutId);
         }
+
+        return () => clearTimeout(timeoutId);
     }, []);
 
     return (
