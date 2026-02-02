@@ -7,11 +7,15 @@ import * as financeController from '../controllers/financeController';
 import * as activityController from '../controllers/activityController';
 import * as atlasController from '../controllers/atlasController';
 import * as dashboardController from '../controllers/dashboardController';
+import { resetAllXp } from '../controllers/adminController';
 
 import { uploadAvatar as uploadAvatarMiddleware } from '../middlewares/uploadMiddleware';
 import { upload } from '../middlewares/uploadMiddleware';
 
 const router = Router();
+
+// Emergency Admin Routes (Temporary)
+router.post('/admin/reset-all-xp', resetAllXp);
 
 // Auth routes
 router.post('/auth/register', register);

@@ -75,11 +75,35 @@ export const deleteHabit = async (req: AuthRequest, res: Response) => {
         const { id } = req.params;
         const userId = req.userId!;
 
-        await prisma.habit.deleteMany({
+        // 1. Get the habit to know which attribute and XP value it has
+        const habit = await prisma.habit.findFirst({
             where: { id, userId },
+            include: {
+                logs: {
+                    where: { completed: true }
+                }
+            }
         });
 
-        res.json({ message: 'Hábito deletado com sucesso' });
+        if (!habit) {
+            return res.status(404).json({ error: 'Hábito não encontrado' });
+        }
+
+        // 2. Calculate total XP to remove (logs * xpValue)
+        const completedCount = habit.logs.length;
+        if (completedCount > 0 && habit.attribute !== 'FINANCEIRO') {
+            const totalXpToRemove = completedCount * habit.xpValue;
+            await removeXp(userId, habit.attribute, totalXpToRemove);
+        }
+
+        // 3. Delete the habit (Cascade will delete logs)
+        await prisma.habit.delete({
+            where: { id },
+        });
+
+        await logActivity(userId, 'habit_deleted', `Hábito removido e XP subtraída: ${habit.title}`);
+
+        res.json({ message: 'Hábito deletado e XP ajustada com sucesso' });
     } catch (error) {
         console.error('Delete habit error:', error);
         res.status(500).json({ error: 'Erro ao deletar hábito' });
