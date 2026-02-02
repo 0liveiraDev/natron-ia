@@ -1,12 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot } from 'lucide-react';
+import { Bot, Smartphone, Monitor } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import { useUI } from '../contexts/UIContext';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useUser();
+    const { isMobileMode, toggleMobileMode } = useUI();
+    const [isInstalled, setIsInstalled] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+            || (window.navigator as any).standalone
+            || document.referrer.includes('android-app://');
+
+        setIsInstalled(isStandalone);
+
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+
+        const handleAppInstalled = () => {
+            console.log('PWA was installed');
+            setIsInstalled(true);
+            setDeferredPrompt(null);
+            window.location.reload();
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+        };
+    }, []);
 
     const currentDate = new Date().toLocaleDateString('pt-BR', {
         weekday: 'long',
@@ -65,12 +97,23 @@ const Header: React.FC = () => {
         return Math.min(Math.max(progress, 0), 100);
     };
 
-    const installPWA = () => {
-        alert('Para instalar o Natron IA:\n\nNo iPhone: Toque no ícone de Compartilhar e selecione "Adicionar à Tela de Início".\n\nNo Android/Chrome: Clique no menu (três pontos) e selecione "Instalar aplicativo".');
+    const installPWA = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setIsInstalled(true);
+            }
+            setDeferredPrompt(null);
+        } else {
+            alert('Para instalar o Natron IA:\n\nNo iPhone: Toque no ícone de Compartilhar e selecione "Adicionar à Tela de Início".\n\nNo Android/Chrome: Clique no menu (três pontos) e selecione "Instalar aplicativo".');
+        }
     };
 
     const xpPercentage = calculateXpPercentage(user?.currentXp || 0);
     const currentColor = getRankColor(user?.rank || 'Estudante da Academia');
+
+    const showMobileProfile = isMobileMode || window.innerWidth < 768;
 
     return (
         <motion.header
@@ -85,8 +128,8 @@ const Header: React.FC = () => {
                     </h2>
 
                     {/* Mobile Profile Info */}
-                    {user && (
-                        <div className="flex md:hidden items-center gap-2 ml-2 pl-2 border-l border-white/10 overflow-hidden">
+                    {user && showMobileProfile && (
+                        <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10 overflow-hidden">
                             <div
                                 className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0"
                                 style={{ borderColor: currentColor }}
@@ -126,25 +169,35 @@ const Header: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                {/* Mobile Mode Toggle */}
                 <button
-                    onClick={installPWA}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-[#00ff88]/20 bg-[#00ff88]/5 hover:bg-[#00ff88]/10 transition-colors text-[10px] sm:text-sm font-bold text-[#00ff88]"
+                    onClick={toggleMobileMode}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${isMobileMode ? 'bg-[#00ff88]/10 text-[#00ff88]' : 'hover:bg-white/5 text-gray-400'}`}
+                    title={isMobileMode ? "Mudar para modo Desktop" : "Mudar para modo Mobile"}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <span className="hidden sm:inline">Instalar App</span>
-                    <span className="sm:hidden">Instalar</span>
+                    {isMobileMode ? <Smartphone size={18} /> : <Monitor size={18} />}
+                    <span className="hidden lg:inline text-xs font-bold uppercase tracking-wider">
+                        {isMobileMode ? "Mobile" : "Desktop"}
+                    </span>
                 </button>
+
+                {!isInstalled && (
+                    <button
+                        onClick={installPWA}
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-[#00ff88]/20 bg-[#00ff88]/5 hover:bg-[#00ff88]/10 transition-colors text-[10px] sm:text-sm font-bold text-[#00ff88]"
+                    >
+                        <Bot size={16} className="hidden sm:inline" />
+                        <span className="hidden sm:inline">Instalar App</span>
+                        <span className="sm:hidden">Instalar</span>
+                    </button>
+                )}
 
                 <button
                     onClick={() => navigate('/atlas')}
                     className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-sm font-medium"
                 >
                     <Bot size={16} className="text-[#ff9500]" />
-                    Falar com a Friday
+                    <span className="hidden md:inline">Falar com a Friday</span>
                 </button>
             </div>
         </motion.header>
