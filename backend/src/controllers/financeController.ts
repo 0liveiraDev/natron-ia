@@ -28,9 +28,12 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             `${type === 'entrada' ? 'Entrada' : 'Saída'} de R$ ${amount} em ${category}`
         );
 
-        // Award XP - Non-blocking
+        // Award XP - Only for investments
         try {
-            await addXp(userId, 'FINANCEIRO', 10);
+            const cat = category?.toLowerCase();
+            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+                await addXp(userId, 'FINANCEIRO', 10);
+            }
         } catch (xpError) {
             console.error('Error awarding XP in createTransaction:', xpError);
         }
@@ -90,9 +93,29 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         const { id } = req.params;
         const userId = req.userId!;
 
-        await prisma.transaction.deleteMany({
-            where: { id, userId },
+        // Get transaction before deleting to check for XP removal
+        const transaction = await prisma.transaction.findFirst({
+            where: { id, userId }
         });
+
+        if (!transaction) {
+            return res.status(404).json({ error: 'Transação não encontrada' });
+        }
+
+        await prisma.transaction.delete({
+            where: { id }
+        });
+
+        // Remove XP if it was an investment
+        try {
+            const { removeXp } = await import('../services/xpService');
+            const cat = transaction.category?.toLowerCase();
+            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+                await removeXp(userId, 'FINANCEIRO', 10);
+            }
+        } catch (xpError) {
+            console.error('Error removing XP in deleteTransaction:', xpError);
+        }
 
         res.json({ message: 'Transação deletada com sucesso' });
     } catch (error) {
@@ -301,9 +324,12 @@ export const confirmReceipt = async (req: AuthRequest, res: Response) => {
             `Gasto de R$ ${amount} registrado via nota fiscal`
         );
 
-        // Award XP - Non-blocking
+        // Award XP - Only for investments
         try {
-            await addXp(userId, 'FINANCEIRO', 10);
+            const cat = category?.toLowerCase();
+            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+                await addXp(userId, 'FINANCEIRO', 10);
+            }
         } catch (xpError) {
             console.error('Error awarding XP in confirmReceipt:', xpError);
         }
