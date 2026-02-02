@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, Smartphone, Monitor } from 'lucide-react';
+import { Bot, Smartphone, Monitor, LogOut } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { useUI } from '../contexts/UIContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
-    const { user } = useUser();
+    const { user, clearUser } = useUser();
+    const { logout } = useAuth();
     const { isMobileMode, toggleMobileMode } = useUI();
     const [isInstalled, setIsInstalled] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -169,6 +171,21 @@ const Header: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                {/* Logout Button - Mobile Mode Only */}
+                {isMobileMode && (
+                    <button
+                        onClick={() => {
+                            clearUser();
+                            logout();
+                            window.location.href = '/login';
+                        }}
+                        className="p-2 rounded-lg text-red-500/80 hover:bg-red-500/10 transition-colors"
+                        title="Sair"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                )}
+
                 {/* Mobile Mode Toggle */}
                 <button
                     onClick={toggleMobileMode}
@@ -181,7 +198,7 @@ const Header: React.FC = () => {
                     </span>
                 </button>
 
-                {!isInstalled && (
+                {!isInstalled && !isMobileMode && (
                     <button
                         onClick={installPWA}
                         className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-[#00ff88]/20 bg-[#00ff88]/5 hover:bg-[#00ff88]/10 transition-colors text-[10px] sm:text-sm font-bold text-[#00ff88]"

@@ -14,7 +14,7 @@ const MobileNav: React.FC = () => {
     ];
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 h-20 glass-card border-t border-white/10 px-6 flex items-center justify-between z-50 md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 h-20 glass-card border-t border-white/10 px-6 flex items-center justify-between z-50">
             {menuItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (

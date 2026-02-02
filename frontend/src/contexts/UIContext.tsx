@@ -10,7 +10,10 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isMobileMode, setIsMobileMode] = useState<boolean>(() => {
         const saved = localStorage.getItem('mobileMode');
-        return saved === 'true';
+        if (saved !== null) return saved === 'true';
+
+        // Automatic detection if no preference is saved
+        return window.innerWidth < 768;
     });
 
     useEffect(() => {
