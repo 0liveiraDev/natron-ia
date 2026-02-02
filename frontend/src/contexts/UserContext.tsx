@@ -69,26 +69,36 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     useEffect(() => {
-        // Only fetch user if token exists (user is logged in)
         const token = localStorage.getItem('token');
 
-        // Set a timeout to prevent infinite loading (especially important for PWA)
-        const timeoutId = setTimeout(() => {
-            console.warn('User fetch timeout - forcing loading to false');
+        if (!token) {
+            // No token = instant redirect to login, no loading needed
             setLoading(false);
-        }, 5000); // 5 second timeout
-
-        if (token) {
-            fetchUser().finally(() => {
-                clearTimeout(timeoutId);
-            });
-        } else {
-            // Important: Set loading to false even if no token
-            setLoading(false);
-            clearTimeout(timeoutId);
+            return;
         }
 
-        return () => clearTimeout(timeoutId);
+        // Has token = try to fetch user data with short timeout
+        let isCancelled = false;
+        const timeoutId = setTimeout(() => {
+            if (!isCancelled) {
+                console.warn('User fetch timeout - redirecting to login');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                setLoading(false);
+            }
+        }, 3000); // Reduced to 3 seconds
+
+        fetchUser().finally(() => {
+            if (!isCancelled) {
+                clearTimeout(timeoutId);
+            }
+        });
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(timeoutId);
+        };
     }, []);
 
     return (
