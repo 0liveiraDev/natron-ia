@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -13,6 +13,12 @@ const Login: React.FC = () => {
     const { refreshUser } = useUser();
     const navigate = useNavigate();
     const { showToast, ToastContainer } = useToast();
+
+    // Clean up any corrupted tokens on mount
+    useEffect(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
