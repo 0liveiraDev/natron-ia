@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from './Toast';
 import { useUser } from '../contexts/UserContext';
-import { User, Camera, LogOut, LayoutDashboard, Bot, CheckSquare, Target, Wallet } from 'lucide-react';
+import { Camera, LogOut, LayoutDashboard, Bot, CheckSquare, Target, Wallet } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
     const location = useLocation();
@@ -49,7 +49,7 @@ const Sidebar: React.FC = () => {
         formData.append('avatar', file);
 
         try {
-            const response = await api.post('/auth/avatar', formData, {
+            await api.post('/auth/avatar', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
