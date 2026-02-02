@@ -4,11 +4,15 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileNav from './MobileNav';
 
+import { useUI } from '../contexts/UIContext';
+
 const Layout: React.FC = () => {
+    const { isMobileMode } = useUI();
+
     return (
-        <div className="flex h-screen overflow-hidden bg-background">
-            {/* Sidebar only on Desktop */}
-            <div className="hidden md:block">
+        <div className={`flex h-screen overflow-hidden bg-background ${isMobileMode ? 'force-mobile' : ''}`}>
+            {/* Sidebar only on Desktop, hide if mobile mode is forced */}
+            <div className={`${isMobileMode ? 'hidden' : 'hidden md:block'}`}>
                 <Sidebar />
             </div>
 
@@ -20,8 +24,10 @@ const Layout: React.FC = () => {
                     </div>
                 </main>
 
-                {/* Mobile Navigation */}
-                <MobileNav />
+                {/* Mobile Navigation - show on mobile resolution OR if mobile mode is forced */}
+                <div className={`${isMobileMode ? 'block' : 'md:hidden'}`}>
+                    <MobileNav />
+                </div>
             </div>
         </div>
     );

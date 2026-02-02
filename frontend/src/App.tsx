@@ -11,33 +11,37 @@ import Tasks from './pages/Tasks';
 import Finance from './pages/Finance';
 import Atlas from './pages/Atlas';
 
+import { UIProvider } from './contexts/UIContext';
+
 function App() {
     return (
         <AuthProvider>
-            <UserProvider>
-                <BrowserRouter>
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
+            <UIProvider>
+                <UserProvider>
+                    <BrowserRouter>
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
 
-                        <Route
-                            path="/"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout />
-                                </ProtectedRoute>
-                            }
-                        >
-                            <Route index element={<Navigate to="/dashboard" replace />} />
-                            <Route path="dashboard" element={<Dashboard />} />
-                            <Route path="atlas" element={<Atlas />} />
-                            <Route path="tasks" element={<Tasks />} />
-                            <Route path="habits" element={<Habits />} />
-                            <Route path="finance" element={<Finance />} />
-                        </Route>
-                    </Routes>
-                </BrowserRouter>
-            </UserProvider>
+                            <Route
+                                path="/"
+                                element={
+                                    <ProtectedRoute>
+                                        <Layout />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                <Route index element={<Navigate to="/dashboard" replace />} />
+                                <Route path="dashboard" element={<Dashboard />} />
+                                <Route path="atlas" element={<Atlas />} />
+                                <Route path="tasks" element={<Tasks />} />
+                                <Route path="habits" element={<Habits />} />
+                                <Route path="finance" element={<Finance />} />
+                            </Route>
+                        </Routes>
+                    </BrowserRouter>
+                </UserProvider>
+            </UIProvider>
         </AuthProvider>
     );
 }
