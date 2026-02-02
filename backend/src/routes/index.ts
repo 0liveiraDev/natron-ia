@@ -6,6 +6,7 @@ import * as taskController from '../controllers/taskController';
 import * as financeController from '../controllers/financeController';
 import * as activityController from '../controllers/activityController';
 import * as atlasController from '../controllers/atlasController';
+import * as dashboardController from '../controllers/dashboardController';
 
 import { uploadAvatar as uploadAvatarMiddleware } from '../middlewares/uploadMiddleware';
 import { upload } from '../middlewares/uploadMiddleware';
@@ -50,7 +51,6 @@ router.get('/activities', authMiddleware, activityController.getActivities);
 router.post('/atlas/chat', authMiddleware, atlasController.chat);
 
 // Dashboard routes
-import * as dashboardController from '../controllers/dashboardController';
 router.get('/dashboard/overview', authMiddleware, dashboardController.getOverview);
 router.get('/dashboard/weekly-progress', authMiddleware, dashboardController.getWeeklyProgress);
 router.get('/dashboard/monthly-stats', authMiddleware, dashboardController.getMonthlyStats);
