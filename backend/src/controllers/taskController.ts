@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middlewares/auth';
 import { logActivity } from '../services/activityService';
 import { addXp, removeXp } from '../services/xpService';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -103,8 +105,6 @@ export const deleteTask = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
         const userId = req.userId!;
-        const fs = require('fs');
-        const path = require('path');
         const logFile = path.join(__dirname, '../../debug_b.log');
 
         const log = (msg: string) => {

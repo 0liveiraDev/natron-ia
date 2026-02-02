@@ -283,9 +283,59 @@ function identifyEstablishmentAndCategory(text: string): {
             subcategory: 'clinica',
             name: 'Clínica'
         },
+
+        // HOSPEDAGEM / VIAGENS (Variável)
+        'airbnb': {
+            type: 'variavel' as const,
+            category: 'lazer',
+            subcategory: 'hospedagem',
+            name: 'Airbnb'
+        },
+        'booking': {
+            type: 'variavel' as const,
+            category: 'lazer',
+            subcategory: 'hospedagem',
+            name: 'Booking.com'
+        },
+        'hotel': {
+            type: 'variavel' as const,
+            category: 'lazer',
+            subcategory: 'hospedagem',
+            name: 'Hotel'
+        },
+        'pousada': {
+            type: 'variavel' as const,
+            category: 'lazer',
+            subcategory: 'hospedagem',
+            name: 'Pousada'
+        },
+
+        // PAGAMENTOS / INTERMEDIÁRIOS (Outros)
+        'mercado pago': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'pagamento',
+            name: 'Mercado Pago'
+        },
+        'picpay': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'pagamento',
+            name: 'PicPay'
+        },
+        'paypal': {
+            type: 'variavel' as const,
+            category: 'outros',
+            subcategory: 'pagamento',
+            name: 'PayPal'
+        },
     };
 
-    for (const [keyword, info] of Object.entries(establishments)) {
+    // Sort keywords by length (longest first) to avoid false matches
+    // Example: "mercado pago" should match before "mercado"
+    const sortedKeywords = Object.entries(establishments).sort((a, b) => b[0].length - a[0].length);
+
+    for (const [keyword, info] of sortedKeywords) {
         if (textLower.includes(keyword)) {
             return {
                 establishment: info.name,
