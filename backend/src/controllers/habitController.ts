@@ -121,7 +121,9 @@ export const toggleHabitLog = async (req: AuthRequest, res: Response) => {
             });
 
             // Remove XP when unmarking
-            await removeXp(userId, habit.attribute, habit.xpValue);
+            if (habit.attribute !== 'FINANCEIRO') {
+                await removeXp(userId, habit.attribute, habit.xpValue);
+            }
 
             res.json({ message: 'Log removido', completed: false });
         } else {
@@ -137,7 +139,9 @@ export const toggleHabitLog = async (req: AuthRequest, res: Response) => {
             await logActivity(userId, 'habit_completed', `Hábito concluído: ${habit.title}`);
 
             // Award XP
-            await addXp(userId, habit.attribute, habit.xpValue);
+            if (habit.attribute !== 'FINANCEIRO') {
+                await addXp(userId, habit.attribute, habit.xpValue);
+            }
 
             res.json({ message: 'Log criado', completed: true, log });
         }

@@ -79,13 +79,17 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
         if (isCompleting && currentTask) {
             await logActivity(userId, 'task_completed', `Tarefa concluída: ${currentTask.title}`);
             // Award XP
-            await addXp(userId, currentTask.attribute, currentTask.xpValue);
+            if (currentTask.attribute !== 'FINANCEIRO') {
+                await addXp(userId, currentTask.attribute, currentTask.xpValue);
+            }
         }
 
         if (isUncompleting && currentTask) {
             await logActivity(userId, 'task_uncompleted', `Tarefa desmarcada: ${currentTask.title}`);
             // Remove XP
-            await removeXp(userId, currentTask.attribute, currentTask.xpValue);
+            if (currentTask.attribute !== 'FINANCEIRO') {
+                await removeXp(userId, currentTask.attribute, currentTask.xpValue);
+            }
         }
 
         res.json(task);
