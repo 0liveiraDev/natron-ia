@@ -163,12 +163,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
 
                     await logActivity(userId, 'transaction_added', `Gasto registrado por Atlas: R$ ${amount}`);
 
-                    // Award XP - Non-blocking
-                    try {
-                        await addXp(userId, 'FINANCEIRO', 10);
-                    } catch (xpError) {
-                        console.error('Error awarding XP for expense:', xpError);
-                    }
+                    // No XP for expenses - only investment income awards XP
 
                     actions.push({ type: 'expense_added', data: transaction });
                     assistantMessage = `💸 Registrado! Gasto de R$ ${amount.toFixed(2)} em ${categoryInput}. Fique de olho nas suas finanças!`;
@@ -201,12 +196,8 @@ export const chat = async (req: AuthRequest, res: Response) => {
                     });
                     await logActivity(userId, 'transaction_added', `Entrada registrada por Atlas: R$ ${amount}`);
 
-                    // Award XP - Non-blocking
-                    try {
-                        await addXp(userId, 'FINANCEIRO', 10);
-                    } catch (xpError) {
-                        console.error('Error awarding XP for income:', xpError);
-                    }
+                    // No XP for regular income - only investment income (entrada + investimento) awards XP
+                    // Atlas currently doesn't support specifying investment category
 
                     actions.push({ type: 'income_added', data: transaction });
                     assistantMessage = `💰 Ótimo! Entrada de R$ ${amount.toFixed(2)} registrada. Continue assim!`;
