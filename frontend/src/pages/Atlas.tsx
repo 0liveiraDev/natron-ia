@@ -161,7 +161,10 @@ const Atlas: React.FC = () => {
             if (pendingReceipt && !pendingReceipt.amount) {
                 const valorMatch = userMessage.match(/valor[:\s]+(\d+[.,]?\d*)/i);
                 if (valorMatch) {
-                    const valor = parseFloat(valorMatch[1].replace(',', '.'));
+                    // Remove thousand separators (dots) and convert comma to decimal point
+                    // Examples: "1.000" -> "1000", "1.000,50" -> "1000.50", "1000" -> "1000"
+                    const valorStr = valorMatch[1].replace(/\./g, '').replace(',', '.');
+                    const valor = parseFloat(valorStr);
                     pendingReceipt.amount = valor;
 
                     setMessages((prev) => [

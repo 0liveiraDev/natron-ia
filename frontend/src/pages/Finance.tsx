@@ -159,8 +159,12 @@ const Finance: React.FC = () => {
     const handleCreateTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // Remove thousand separators (dots) and convert comma to decimal point
+            // Examples: "1.000" -> "1000", "1.000,50" -> "1000.50", "1000" -> "1000"
+            const cleanAmount = amount.replace(/\./g, '').replace(',', '.');
+
             await api.post('/transactions', {
-                amount: parseFloat(amount),
+                amount: parseFloat(cleanAmount),
                 type,
                 category,
                 description,
