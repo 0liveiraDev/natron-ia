@@ -112,7 +112,7 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         try {
             const { removeXp } = await import('../services/xpService');
             const cat = transaction.category?.toLowerCase();
-            if (transaction.type === 'entrada' && cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+            if (transaction.type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
                 await removeXp(userId, 'FINANCEIRO', 10);
             }
         } catch (xpError) {
@@ -345,7 +345,7 @@ export const confirmReceipt = async (req: AuthRequest, res: Response) => {
         // Award XP - Only for investments
         try {
             const cat = category?.toLowerCase();
-            if (transaction.type === 'entrada' && cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+            if (transaction.type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
                 await addXp(userId, 'FINANCEIRO', 10);
             }
         } catch (xpError) {
