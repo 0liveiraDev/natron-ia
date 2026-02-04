@@ -1,4 +1,4 @@
-ï»¿import { Response } from 'express';
+import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middlewares/auth';
 import fs from 'fs';
@@ -27,7 +27,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
         await logActivity(
             userId,
             'transaction_added',
-            `${type === 'entrada' ? 'Entrada' : 'SaÃ­da'} de R$ ${amount} em ${category}`
+            `${type === 'entrada' ? 'Entrada' : 'Saída'} de R$ ${amount} em ${category}`
         );
 
         // Award XP - Only for investment INCOME (entrada + investimento)
@@ -43,7 +43,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
         res.status(201).json(transaction);
     } catch (error) {
         console.error('Create transaction error:', error);
-        res.status(500).json({ error: 'Erro ao criar transaÃ§Ã£o' });
+        res.status(500).json({ error: 'Erro ao criar transação' });
     }
 };
 
@@ -62,7 +62,7 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
         res.json(transactions);
     } catch (error) {
         console.error('Get transactions error:', error);
-        res.status(500).json({ error: 'Erro ao buscar transaÃ§Ãµes' });
+        res.status(500).json({ error: 'Erro ao buscar transações' });
     }
 };
 
@@ -86,7 +86,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
         res.json(transaction);
     } catch (error) {
         console.error('Update transaction error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar transaÃ§Ã£o' });
+        res.status(500).json({ error: 'Erro ao atualizar transação' });
     }
 };
 
@@ -101,7 +101,7 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         });
 
         if (!transaction) {
-            return res.status(404).json({ error: 'TransaÃ§Ã£o nÃ£o encontrada' });
+            return res.status(404).json({ error: 'Transação não encontrada' });
         }
 
         await prisma.transaction.delete({
@@ -112,17 +112,17 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         try {
             const { removeXp } = await import('../services/xpService');
             const cat = transaction.category?.toLowerCase();
-            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+            if (transaction.type === 'entrada' && cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
                 await removeXp(userId, 'FINANCEIRO', 10);
             }
         } catch (xpError) {
             console.error('Error removing XP in deleteTransaction:', xpError);
         }
 
-        res.json({ message: 'TransaÃ§Ã£o deletada com sucesso' });
+        res.json({ message: 'Transação deletada com sucesso' });
     } catch (error) {
         console.error('Delete transaction error:', error);
-        res.status(500).json({ error: 'Erro ao deletar transaÃ§Ã£o' });
+        res.status(500).json({ error: 'Erro ao deletar transação' });
     }
 };
 
@@ -217,7 +217,7 @@ export const updateFinancialConfig = async (req: AuthRequest, res: Response) => 
         res.json(config);
     } catch (error) {
         console.error('Update config error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar configuraÃ§Ãµes' });
+        res.status(500).json({ error: 'Erro ao atualizar configurações' });
     }
 };
 
@@ -225,15 +225,15 @@ export const updateFinancialConfig = async (req: AuthRequest, res: Response) => 
 export const uploadReceipt = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
-        console.log('ðŸ“¤ Upload receipt - User:', userId);
+        console.log('?? Upload receipt - User:', userId);
 
         if (!req.file) {
-            console.log('âŒ No file in request');
+            console.log('? No file in request');
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
         const filePath = req.file.path;
-        console.log('ðŸ“ File uploaded successfully:', {
+        console.log('?? File uploaded successfully:', {
             path: filePath,
             originalname: req.file.originalname,
             mimetype: req.file.mimetype,
@@ -241,23 +241,23 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
         });
 
         try {
-            // Importar serviÃ§os dinamicamente
-            console.log('ðŸ”§ Importing services...');
+            // Importar serviços dinamicamente
+            console.log('?? Importing services...');
             const { processReceipt } = await import('../services/ocrService');
             const { parseReceiptText } = await import('../services/receiptParser');
 
             // Processar arquivo com OCR/PDF parser
-            console.log('ðŸ” Processing PDF...');
+            console.log('?? Processing PDF...');
             const ocrResult = await processReceipt(filePath);
-            console.log('âœ… PDF processed. Text length:', ocrResult.text.length);
-            console.log('ðŸ“ First 200 chars:', ocrResult.text.substring(0, 200));
+            console.log('? PDF processed. Text length:', ocrResult.text.length);
+            console.log('?? First 200 chars:', ocrResult.text.substring(0, 200));
 
-            // Parsear informaÃ§Ãµes da nota fiscal
-            console.log('ðŸ§  Parsing receipt data...');
+            // Parsear informações da nota fiscal
+            console.log('?? Parsing receipt data...');
             const parsedData = parseReceiptText(ocrResult.text);
-            console.log('âœ… Parsed data:', parsedData);
+            console.log('? Parsed data:', parsedData);
 
-            // Retornar dados extraÃ­dos
+            // Retornar dados extraídos
             const response = {
                 success: true,
                 filePath: filePath,
@@ -274,24 +274,24 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
                 },
                 message: parsedData.amount
                     ? `Nota fiscal processada! Encontrei um gasto de R$ ${parsedData.amount.toFixed(2)}${parsedData.establishment ? ` em ${parsedData.establishment}` : ''}.`
-                    : 'Nota fiscal processada, mas nÃ£o consegui identificar o valor. Por favor, insira manualmente.',
+                    : 'Nota fiscal processada, mas não consegui identificar o valor. Por favor, insira manualmente.',
             };
 
-            console.log('âœ… Sending response');
+            console.log('? Sending response');
             res.json(response);
 
-            // Deletar o arquivo PDF imediatamente apÃ³s o processamento (Privacidade e EspaÃ§o)
+            // Deletar o arquivo PDF imediatamente após o processamento (Privacidade e Espaço)
             try {
                 if (fs.existsSync(filePath)) {
                     fs.unlinkSync(filePath);
-                    console.log(`ðŸ—‘ï¸ Deleted temporary receipt: ${filePath}`);
+                    console.log(`??? Deleted temporary receipt: ${filePath}`);
                 }
             } catch (fsError) {
                 console.error('Error deleting receipt file:', fsError);
             }
 
         } catch (processingError: any) {
-            console.error('âŒ Error processing file:', processingError);
+            console.error('? Error processing file:', processingError);
             console.error('Stack:', processingError.stack);
 
             // Cleanup on error
@@ -306,7 +306,7 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
         }
 
     } catch (error: any) {
-        console.error('âŒ Upload receipt error:', error);
+        console.error('? Upload receipt error:', error);
         console.error('Stack:', error.stack);
         res.status(500).json({
             error: 'Erro ao processar nota fiscal',
@@ -315,14 +315,14 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Confirmar e criar transaÃ§Ã£o a partir de nota fiscal
+// Confirmar e criar transação a partir de nota fiscal
 export const confirmReceipt = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const { amount, date, category, description, filePath } = req.body;
 
         if (!amount) {
-            return res.status(400).json({ error: 'Valor Ã© obrigatÃ³rio' });
+            return res.status(400).json({ error: 'Valor é obrigatório' });
         }
 
         const transaction = await prisma.transaction.create({
@@ -345,7 +345,7 @@ export const confirmReceipt = async (req: AuthRequest, res: Response) => {
         // Award XP - Only for investments
         try {
             const cat = category?.toLowerCase();
-            if (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
+            if (transaction.type === 'entrada' && cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos') {
                 await addXp(userId, 'FINANCEIRO', 10);
             }
         } catch (xpError) {
@@ -355,10 +355,10 @@ export const confirmReceipt = async (req: AuthRequest, res: Response) => {
         res.status(201).json({
             success: true,
             transaction,
-            message: 'TransaÃ§Ã£o criada com sucesso!',
+            message: 'Transação criada com sucesso!',
         });
     } catch (error) {
         console.error('Confirm receipt error:', error);
-        res.status(500).json({ error: 'Erro ao confirmar transaÃ§Ã£o' });
+        res.status(500).json({ error: 'Erro ao confirmar transação' });
     }
 };
