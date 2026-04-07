@@ -4,13 +4,15 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-    const passwordHash = await bcrypt.hash('123456', 10);
+    const defaultHash = await bcrypt.hash('123456', 10);
+    const adminHash = await bcrypt.hash('Zoinha1bruno', 10);
 
     const users = [
-        { name: 'João Ativo Teste', email: 'joao@teste.com', password: passwordHash, role: 'Viajante', isActive: true },
-        { name: 'Maria Inativa', email: 'maria@teste.com', password: passwordHash, role: 'Viajante', isActive: false },
-        { name: 'Carlos Viajante', email: 'carlos@teste.com', password: passwordHash, role: 'Viajante', isActive: true },
-        { name: 'Fernanda Rank', email: 'fernanda@teste.com', password: passwordHash, role: 'Viajante', isActive: true, level: 5, xpPhysical: 500, xpMental: 300, rank: 'Desbravador' },
+        { name: 'Administrador Master', email: 'admin@natron.site', password: adminHash, role: 'Admin', isActive: true, level: 99, rank: 'Líder do Sistema' },
+        { name: 'João Ativo Teste', email: 'joao@teste.com', password: defaultHash, role: 'Viajante', isActive: true },
+        { name: 'Maria Inativa', email: 'maria@teste.com', password: defaultHash, role: 'Viajante', isActive: false },
+        { name: 'Carlos Viajante', email: 'carlos@teste.com', password: defaultHash, role: 'Viajante', isActive: true },
+        { name: 'Fernanda Rank', email: 'fernanda@teste.com', password: defaultHash, role: 'Viajante', isActive: true, level: 5, xpPhysical: 500, xpMental: 300, rank: 'Desbravador' },
     ];
 
     console.log('Iniciando o processo de inserção de usuários falsos...');

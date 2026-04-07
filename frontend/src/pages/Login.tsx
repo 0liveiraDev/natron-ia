@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [resetCode, setResetCode] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     
     // login | forgot | reset
     const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
@@ -162,14 +164,23 @@ const Login: React.FC = () => {
                                             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Senha</label>
                                             <button type="button" onClick={() => setMode('forgot')} className="text-xs text-[#00ff88] hover:text-[#0dff96] transition-colors font-medium">Esqueceu a senha?</button>
                                         </div>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
-                                            placeholder="••••••••"
-                                            required
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 pr-12 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                                placeholder="••••••••"
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="pt-2">
@@ -245,15 +256,24 @@ const Login: React.FC = () => {
 
                                     <div className="space-y-1">
                                         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Nova Senha</label>
-                                        <input
-                                            type="password"
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
-                                            placeholder="••••••••"
-                                            minLength={6}
-                                            required
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 pr-12 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                                placeholder="••••••••"
+                                                minLength={6}
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="pt-2 flex gap-4">

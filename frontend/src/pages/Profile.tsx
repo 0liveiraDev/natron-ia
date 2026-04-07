@@ -3,7 +3,7 @@ import { useUser } from '../contexts/UserContext';
 import { useToast } from '../components/Toast';
 import api from '../services/api';
 import { motion } from 'framer-motion';
-import { User, Award, Zap, Shield, Book, Rocket, DollarSign } from 'lucide-react';
+import { User, Award, Zap, Shield, Book, Rocket, DollarSign, Eye, EyeOff } from 'lucide-react';
 
 const Profile: React.FC = () => {
     const { user } = useUser();
@@ -14,6 +14,7 @@ const Profile: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     if (!user) return <div className="p-8 text-center">Carregando perfil...</div>;
 
@@ -110,35 +111,50 @@ const Profile: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 ml-1">Senha Atual</label>
-                                <input
-                                    type="password"
-                                    value={oldPassword}
-                                    onChange={(e) => setOldPassword(e.target.value)}
-                                    className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={oldPassword}
+                                        onChange={(e) => setOldPassword(e.target.value)}
+                                        className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
+                                        required
+                                    />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88]">
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 ml-1">Nova Senha</label>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
-                                    required
-                                    minLength={6}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
+                                        required
+                                        minLength={6}
+                                    />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88]">
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 ml-1">Confirmar Nova</label>
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
-                                    required
-                                    minLength={6}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all"
+                                        required
+                                        minLength={6}
+                                    />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88]">
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="flex justify-end pt-2">
