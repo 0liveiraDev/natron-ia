@@ -83,13 +83,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let isCancelled = false;
         const timeoutId = setTimeout(() => {
             if (!isCancelled) {
-                console.warn('User fetch timeout - redirecting to login');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                setUser(null);
+                console.warn('User fetch timeout - releasing loading state');
                 setLoading(false);
             }
-        }, 5000); // 5 second timeout for slower connections
+        }, 3000); // 3 second timeout for faster fallback
 
         fetchUser().finally(() => {
             if (!isCancelled) {
