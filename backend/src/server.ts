@@ -69,6 +69,38 @@ if (fs.existsSync(frontendPath)) {
     console.log(`⚠️ Frontend build not found at: ${frontendPath}`);
 }
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(PORT, async () => {
+    console.log(`🚀 Natron IA - Server running on http://localhost:${PORT}`);
+
+    // background maintenance - 5s delay to keep boot super fast
+    setTimeout(async () => {
+        try {
+            console.log('⚡ Running background maintenance...');
+            const { PrismaClient } = await import('@prisma/client');
+            const bcrypt = await import('bcryptjs');
+            const prisma = new PrismaClient();
+
+            // 1) Ensure Admin
+            const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
+            const adminExists = await prisma.user.findUnique({ where: { email: adminEmail } });
+
+            if (!adminExists) {
+                const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
+                await prisma.user.create({
+                    data: {
+                        name: 'Natron IA Admin',
+                        email: adminEmail,
+                        password: hashedPassword,
+                        role: 'Admin',
+                        rank: 'Mestre da Academia',
+                        level: 100,
+                    }
+                });
+                console.log(`✅ Admin Created: ${adminEmail}`);
+            }
+            await prisma.$disconnect();
+        } catch (err: any) {
+            console.warn('⚠️ Background maint suppressed:', err.message);
+        }
+    }, 5000);
 });
