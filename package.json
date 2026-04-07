@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "postinstall": "cd backend && npm install --omit=dev"
+    "postinstall": "cd backend && npm install"
   },
   "dependencies": {
     "express": "^4.18.2",
