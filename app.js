@@ -28,13 +28,13 @@ try {
                 stdio: 'ignore' 
             });
 
-            console.log('✅ Banco sincronizado! Rodando seed.ts com TSX local...');
+            console.log('✅ Banco sincronizado! Inserindo Super Administrador na Hostinger...');
             execSync(`"${npmPath}" run db:seed`, { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
                 stdio: 'ignore' 
             });
-            console.log('✅ Seeds rodados com sucesso!');
+            console.log('✅ Todas as configurações da Base de Dados aplicadas!');
         } catch (dbError) {
             console.error('⚠️ Falha ao sincronizar o BD (Mas a aplicação vai continuar tentanto):', dbError.message);
         }
