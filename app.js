@@ -12,16 +12,25 @@ try {
         const name = process.env.DB_NAME || 'natron';
         process.env.DATABASE_URL = `mysql://${user}:${pass}@${host}:${port}/${name}`;
 
-        console.log('🔄 Sincronizando banco de dados com a Hostinger (NPM RUN Mode)...');
+        console.log('🔄 Sincronizando banco de dados com a Hostinger (Absolute Node Mode)...');
         try {
             const { execSync } = require('child_process');
-            execSync('npm run db:push', { 
+            
+            // Usar process.execPath garante que usamos o mesmo executável Node que está rodando o app.js
+            // evitando problemas de "comando não encontrado" no Passenger/LiteSpeed da Hostinger.
+            const prismaPath = 'node_modules/prisma/build/index.js';
+            const seedPath = 'prisma/seed.ts';
+            const tsxPath = 'node_modules/tsx/dist/cli.mjs';
+
+            console.log('🚀 DB Push...');
+            execSync(`"${process.execPath}" ${prismaPath} db push --accept-data-loss`, { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
                 stdio: 'inherit' 
             });
-            console.log('✅ Banco sincronizado! Criando usuário admin se não existir...');
-            execSync('npm run db:seed', { 
+
+            console.log('✅ Banco sincronizado! Rodando seed.ts com TSX local...');
+            execSync(`"${process.execPath}" ${tsxPath} ${seedPath}`, { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
                 stdio: 'inherit' 
