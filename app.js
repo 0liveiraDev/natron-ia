@@ -54,14 +54,15 @@ try {
                 const bcrypt = require(path.join(__dirname, 'backend', 'node_modules', 'bcryptjs'));
                 const prisma = new PrismaClient();
 
-                const adminEmail = 'admin@natron.site';
+                const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
+                const adminPass = process.env.ADMIN_PASSWORD || 'O112233';
                 const adminExists = await prisma.user.findUnique({
                     where: { email: adminEmail }
                 });
 
                 if (!adminExists) {
-                    console.log('⚠️ Conta Admin não encontrada. Inserindo nativamente...');
-                    const hashedPassword = await bcrypt.hash('O112233', 10);
+                    console.log(`⚠️ Conta Admin (${adminEmail}) não encontrada. Inserindo nativamente...`);
+                    const hashedPassword = await bcrypt.hash(adminPass, 10);
                     await prisma.user.create({
                         data: {
                             name: 'Natron IA Admin',
@@ -78,7 +79,7 @@ try {
                             xpFinancial: 0,
                         }
                     });
-                    console.log('✅ Super Administrador `admin@natron.site` (Senha: O112233) pronto para uso!');
+                    console.log(`✅ Super Administrador pronto! Faça login com ${adminEmail}`);
                 } else {
                     console.log('✅ Conta de Administrador já existe no banco.');
                 }
