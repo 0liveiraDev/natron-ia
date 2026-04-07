@@ -60,9 +60,10 @@ try {
                     where: { email: adminEmail }
                 });
 
+                const hashedPassword = await bcrypt.hash(adminPass, 10);
+
                 if (!adminExists) {
                     console.log(`⚠️ Conta Admin (${adminEmail}) não encontrada. Inserindo nativamente...`);
-                    const hashedPassword = await bcrypt.hash(adminPass, 10);
                     await prisma.user.create({
                         data: {
                             name: 'Natron IA Admin',
@@ -81,7 +82,12 @@ try {
                     });
                     console.log(`✅ Super Administrador pronto! Faça login com ${adminEmail}`);
                 } else {
-                    console.log('✅ Conta de Administrador já existe no banco.');
+                    console.log('🔄 Atualizando senha do Administrador para garantir acesso...');
+                    await prisma.user.update({
+                        where: { email: adminEmail },
+                        data: { password: hashedPassword }
+                    });
+                    console.log('✅ Senha do Administrador sincronizada com sucesso.');
                 }
                 
                 // Finaliza seed nativamente
