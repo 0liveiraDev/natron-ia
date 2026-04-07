@@ -29,6 +29,8 @@ try {
             console.log('✅ Seeds rodados com sucesso!');
         } catch (dbError) {
             console.error('⚠️ Falha ao sincronizar o BD (Mas a aplicação vai continuar tentanto):', dbError.message);
+            if (dbError.stdout) console.error('Stdout:', dbError.stdout.toString());
+            if (dbError.stderr) console.error('Stderr:', dbError.stderr.toString());
         }
     }
 

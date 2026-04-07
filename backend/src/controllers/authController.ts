@@ -52,9 +52,9 @@ export const register = async (req: Request, res: Response) => {
             },
             token,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Register error:', error);
-        res.status(500).json({ error: 'Erro ao criar usuário' });
+        res.status(500).json({ error: 'Erro ao criar usuário: ' + (error.message || String(error)) });
     }
 };
 
@@ -96,9 +96,9 @@ export const login = async (req: Request, res: Response) => {
             },
             token,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Erro ao fazer login' });
+        res.status(500).json({ error: 'Erro ao fazer login: ' + (error.message || String(error)) });
     }
 };
 
@@ -132,9 +132,9 @@ export const getMe = async (req: any, res: Response) => {
 
 
         res.json(user);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get user error:', error);
-        res.status(500).json({ error: 'Erro ao buscar usuário' });
+        res.status(500).json({ error: 'Erro ao buscar usuário: ' + (error.message || String(error)) });
     }
 };
 
@@ -163,9 +163,9 @@ export const changePassword = async (req: any, res: Response) => {
         });
 
         res.json({ message: 'Senha alterada com sucesso!' });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Change password error:', error);
-        res.status(500).json({ error: 'Erro ao alterar a senha' });
+        res.status(500).json({ error: 'Erro ao alterar a senha: ' + (error.message || String(error)) });
     }
 };
 
