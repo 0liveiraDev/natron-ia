@@ -12,34 +12,31 @@ try {
         const name = process.env.DB_NAME || 'natron';
         process.env.DATABASE_URL = `mysql://${user}:${pass}@${host}:${port}/${name}`;
 
-        console.log('🔄 Sincronizando banco de dados com a Hostinger (Absolute Node Mode)...');
+        console.log('🔄 Sincronizando banco de dados com a Hostinger (Absolute NPM Mode)...');
         try {
             const { execSync } = require('child_process');
+            const path = require('path');
             
-            // Usar process.execPath garante que usamos o mesmo executável Node que está rodando o app.js
-            // evitando problemas de "comando não encontrado" no Passenger/LiteSpeed da Hostinger.
-            const prismaPath = 'node_modules/prisma/build/index.js';
-            const seedPath = 'prisma/seed.ts';
-            const tsxPath = 'node_modules/tsx/dist/cli.mjs';
+            // Localizar o executável do npm na mesma pasta do node
+            const nodeDir = path.dirname(process.execPath);
+            const npmPath = path.join(nodeDir, 'npm');
 
             console.log('🚀 DB Push...');
-            execSync(`"${process.execPath}" ${prismaPath} db push --accept-data-loss`, { 
+            execSync(`"${npmPath}" run db:push`, { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
-                stdio: 'inherit' 
+                stdio: 'ignore' 
             });
 
             console.log('✅ Banco sincronizado! Rodando seed.ts com TSX local...');
-            execSync(`"${process.execPath}" ${tsxPath} ${seedPath}`, { 
+            execSync(`"${npmPath}" run db:seed`, { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
-                stdio: 'inherit' 
+                stdio: 'ignore' 
             });
             console.log('✅ Seeds rodados com sucesso!');
         } catch (dbError) {
             console.error('⚠️ Falha ao sincronizar o BD (Mas a aplicação vai continuar tentanto):', dbError.message);
-            if (dbError.stdout) console.error('Stdout:', dbError.stdout.toString());
-            if (dbError.stderr) console.error('Stderr:', dbError.stderr.toString());
         }
     }
 
