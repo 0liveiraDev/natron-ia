@@ -12,32 +12,85 @@ try {
         const name = process.env.DB_NAME || 'natron';
         process.env.DATABASE_URL = `mysql://${user}:${pass}@${host}:${port}/${name}`;
 
-        console.log('🔄 Sincronizando banco de dados com a Hostinger (Absolute NPM Mode)...');
-        try {
-            const { execSync } = require('child_process');
-            const path = require('path');
-            
-            // Localizar o executável do npm na mesma pasta do node
-            const nodeDir = path.dirname(process.execPath);
-            const npmPath = path.join(nodeDir, 'npm');
+        console.log('🔄 Sincronizando banco de dados (Native NodeJS MySQL2 Mode)...');
+        // Usar lógica assíncrona auto-contida para não travar o boot master caso falhe e seja transparente
+        (async () => {
+            try {
+                // 1) CRIAR TABELAS POR VIA NATIVA PASSANDO POR CIMA DO PRISMA CLI
+                const mysql = require('mysql2/promise');
+                const fs = require('fs');
+                const path = require('path');
+                
+                const connection = await mysql.createConnection({
+                    host, port, user, password: pass, database: name, multipleStatements: true
+                });
 
-            console.log('🚀 DB Push...');
-            execSync(`"${npmPath}" run db:push`, { 
-                cwd: __dirname + '/backend', 
-                env: process.env, 
-                stdio: 'ignore' 
-            });
+                console.log('🚀 Construindo ou Atualizando Tabelas no MySQL nativo...');
+                const initSqlPath = path.join(__dirname, 'backend', 'prisma', 'init.sql');
+                if (fs.existsSync(initSqlPath)) {
+                    let sql = fs.readFileSync(initSqlPath, 'utf8');
+                    const queries = sql.split(';').map(q => q.trim()).filter(q => q.length > 0);
+                    
+                    for (let q of queries) {
+                        try {
+                            // Executamos de um por um
+                            if(q !== '-- CreateTable' && !q.startsWith('--')) {
+                                await connection.query(q);
+                            }
+                        } catch (qErr) {
+                            // Ignora erros normais caso a tabela ou constraint já exista
+                            if (!qErr.message.includes('already exists') && !qErr.message.includes('Duplicate')) {
+                                console.error('Aviso de criação SQL:', qErr.message);
+                            }
+                        }
+                    }
+                    console.log('✅ Base de dados perfeitamente sincronizada com schema!');
+                }
+                await connection.end();
 
-            console.log('✅ Banco sincronizado! Inserindo Super Administrador na Hostinger...');
-            execSync(`"${npmPath}" run db:seed`, { 
-                cwd: __dirname + '/backend', 
-                env: process.env, 
-                stdio: 'ignore' 
-            });
-            console.log('✅ Todas as configurações da Base de Dados aplicadas!');
-        } catch (dbError) {
-            console.error('⚠️ Falha ao sincronizar o BD (Mas a aplicação vai continuar tentanto):', dbError.message);
-        }
+                // 2) SEEDING O USUÁRIO PADRÃO DO ADMIN POR VIA NATIVA (TypeScript TSX Bypassed)
+                console.log('🚀 Conectando client do DB para checkup Admin...');
+                const { PrismaClient } = require(path.join(__dirname, 'backend', 'node_modules', '@prisma', 'client'));
+                const bcrypt = require(path.join(__dirname, 'backend', 'node_modules', 'bcryptjs'));
+                const prisma = new PrismaClient();
+
+                const adminEmail = 'admin@natron.site';
+                const adminExists = await prisma.user.findUnique({
+                    where: { email: adminEmail }
+                });
+
+                if (!adminExists) {
+                    console.log('⚠️ Conta Admin não encontrada. Inserindo nativamente...');
+                    const hashedPassword = await bcrypt.hash('O112233', 10);
+                    await prisma.user.create({
+                        data: {
+                            name: 'Natron IA Admin',
+                            email: adminEmail,
+                            password: hashedPassword,
+                            role: 'Admin',
+                            rank: 'Mestre da Academia',
+                            level: 100,
+                            xpPhysical: 0,
+                            xpDiscipline: 0,
+                            xpMental: 0,
+                            xpIntellect: 0,
+                            xpProductivity: 0,
+                            xpFinancial: 0,
+                        }
+                    });
+                    console.log('✅ Super Administrador `admin@natron.site` (Senha: O112233) pronto para uso!');
+                } else {
+                    console.log('✅ Conta de Administrador já existe no banco.');
+                }
+                
+                // Finaliza seed nativamente
+                await prisma.$disconnect();
+                console.log('✅ Processo do Banco de Dados concluído e liberado.');
+                
+            } catch (dbError) {
+                console.error('⚠️ Falha crítica ao sincronizar banco nativamente:', dbError.message);
+            }
+        })();
     }
 
     console.log('🚀 Iniciando Natron IA...');
