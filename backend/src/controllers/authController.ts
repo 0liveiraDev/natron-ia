@@ -178,7 +178,8 @@ export const uploadAvatar = async (req: any, res: Response) => {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        const APP_URL = process.env.APP_URL || 'https://natron.site';
+        const avatarUrl = `${APP_URL}/uploads/avatars/${req.file.filename}`;
 
         const user = await prisma.user.update({
             where: { id: userId },
