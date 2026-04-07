@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const prisma = new client_1.PrismaClient();
 async function testDatabase() {
     try {
@@ -31,7 +31,7 @@ async function testDatabase() {
         else {
             console.log('\n⚠️  Nenhum usuário cadastrado');
             console.log('\n🔧 Criando usuário de teste...');
-            const hashedPassword = await bcrypt_1.default.hash('123456', 10);
+            const hashedPassword = await bcryptjs_1.default.hash('123456', 10);
             const testUser = await prisma.user.create({
                 data: {
                     name: 'Usuário Teste',
