@@ -53,6 +53,8 @@ router.put('/admin/users/:id/toggle-active', auth_1.authMiddleware, adminControl
 // Auth routes
 router.post('/auth/register', authController_1.register);
 router.post('/auth/login', authController_1.login);
+router.post('/auth/forgot-password', authController_1.forgotPassword);
+router.post('/auth/reset-password', authController_1.resetPassword);
 router.get('/auth/me', auth_1.authMiddleware, authController_1.getMe);
 router.post('/auth/avatar', auth_1.authMiddleware, uploadMiddleware_1.uploadAvatar.single('avatar'), authController_1.uploadAvatar);
 router.post('/auth/upload-avatar', auth_1.authMiddleware, uploadMiddleware_1.uploadAvatar.single('avatar'), authController_1.uploadAvatar);

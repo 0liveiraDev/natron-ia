@@ -19,8 +19,8 @@ function extractAmount(text) {
     const textNorm = normalizeText(text);
     // Primeiro tentar encontrar perto de palavras-chave "total" ou "valor pago"
     const keywordRegexes = [
-        /(?:total|valor pago|valor cobrado|total a pagar|total da nota|valor total|pagamento|debito|credito)[\s:]*r?\$?\s*(\d+[.,]\d{2})/i,
-        /r\$\s*(\d+[.,]\d{2})(?=\s*(?:total|pago))/i
+        /(?:total|valor pago|valor cobrado|total a pagar|total da nota|valor total|pagamento|debito|credito|valor|valor da transferencia|valor do pix|valor do pagamento)[\s:]*r?\$?\s*(\d+[.,]\d{2})/i,
+        /r\$\s*(\d+[.,]\d{2})(?=\s*(?:total|pago|valor|transferido))/i
     ];
     for (const regex of keywordRegexes) {
         const match = textNorm.match(regex);
@@ -110,6 +110,36 @@ function extractDate(text) {
             const date = pattern.extract(match);
             if (date && !isNaN(date.getTime())) {
                 return date;
+            }
+        }
+    }
+    return undefined;
+}
+/**
+ * Extrai o nome do recebedor do Pix ou Transferência Bancária
+ */
+function extractReceiver(text) {
+    const textNorm = normalizeText(text);
+    const regexes = [
+        /(?:recebedor|favorecido|destinatario|pago para|nome do recebedor|nome)[\s:]+([a-z ]{5,40})(?:cpf|cnpj|instituicao|agencia|conta|chave|data|banco)/i,
+        /(?:recebedor|favorecido|destinatario|pago para|nome do recebedor|nome)[\s:]+([a-z ]{5,40})/i,
+        /para[\s:]+([a-z ]{5,40})/i
+    ];
+    for (const regex of regexes) {
+        const match = textNorm.match(regex);
+        if (match && match[1]) {
+            let name = match[1].trim();
+            // Define a hard stop se a string de nome contiver palavras-chave irrelevantes arrastadas
+            const stopWords = [' cpf', ' cnpj', ' data', ' valor', ' banco', ' instituicao', ' chave'];
+            for (const sw of stopWords) {
+                const swPos = name.indexOf(sw);
+                if (swPos > 0) {
+                    name = name.substring(0, swPos).trim();
+                }
+            }
+            if (name.length > 3) {
+                // Return original capitalized format if possible by simple split map
+                return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
             }
         }
     }
@@ -334,14 +364,29 @@ function identifyEstablishmentAndCategory(text) {
 function parseReceiptText(text) {
     const amount = extractAmount(text);
     const date = extractDate(text);
+    const receiver = extractReceiver(text);
     const { establishment, category, subcategory, categoryType } = identifyEstablishmentAndCategory(text);
+    // Se identificarmos que é banco (pix/transf) por fallback mas achamos um 'receiver', é melhor usar o receiver.
+    const isPaymentIntermediary = ['Nubank', 'Itaú', 'Bradesco', 'Santander', 'Banco Inter', 'Caixa Econômica', 'Mercado Pago'].includes(establishment || '');
+    let finalEstablishment = establishment;
+    let finalDescription = establishment;
+    if (receiver) {
+        // Se for um banco listado, o estabelecimento real é a pessoa que recebeu!
+        if (isPaymentIntermediary || !establishment) {
+            finalEstablishment = receiver;
+            finalDescription = `Transf/Pix para ${receiver}`;
+        }
+        else {
+            finalDescription = `${establishment} (${receiver})`;
+        }
+    }
     return {
         amount,
         date,
-        establishment,
+        establishment: finalEstablishment || "Desconhecido",
         category,
         subcategory,
         categoryType,
-        description: establishment,
+        description: finalDescription,
     };
 }

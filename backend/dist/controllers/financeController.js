@@ -57,10 +57,13 @@ const createTransaction = async (req, res) => {
             },
         });
         await (0, activityService_1.logActivity)(userId, 'transaction_added', `${type === 'entrada' ? 'Entrada' : 'Saída'} de R$ ${amount} em ${category}`);
-        // Award XP - Only for investment INCOME (entrada + investimento)
+        // Award XP
         try {
+            // Recompensa padrão por registrar gasto/entrada (incentiva o hábito de anotar)
+            await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
             const cat = category?.toLowerCase();
             if (type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
+                // Bônus extra por investimentos
                 await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 10);
             }
         }
@@ -128,11 +131,14 @@ const deleteTransaction = async (req, res) => {
         await prisma.transaction.delete({
             where: { id }
         });
-        // Remove XP if it was an investment
+        // Remove XP se a transação for deletada
         try {
             const { removeXp } = await Promise.resolve().then(() => __importStar(require('../services/xpService')));
+            // Remove o XP base
+            await removeXp(userId, 'FINANCEIRO', 5);
             const cat = transaction.category?.toLowerCase();
             if (transaction.type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
+                // Remove o bônus de investimento
                 await removeXp(userId, 'FINANCEIRO', 10);
             }
         }
@@ -341,8 +347,10 @@ const confirmReceipt = async (req, res) => {
             },
         });
         await (0, activityService_1.logActivity)(userId, 'transaction_added', `Gasto de R$ ${amount} registrado via nota fiscal`);
-        // Award XP - Only for investments
+        // Award XP
         try {
+            // Recompensa base por nota fiscal processada
+            await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
             const cat = category?.toLowerCase();
             if (transaction.type === 'entrada' && (cat === 'investimento' || cat === 'investimientos' || cat === 'investimentos')) {
                 await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 10);

@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadAvatar = exports.getMe = exports.login = exports.register = void 0;
+exports.resetPassword = exports.forgotPassword = exports.uploadAvatar = exports.getMe = exports.login = exports.register = void 0;
 const client_1 = require("@prisma/client");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const mailService_1 = require("../services/mailService");
 const prisma = new client_1.PrismaClient();
 const register = async (req, res) => {
     try {
@@ -32,6 +33,13 @@ const register = async (req, res) => {
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, {
             expiresIn: '7d',
         });
+        // Enviar e-mail de boas-vindas
+        try {
+            await (0, mailService_1.sendWelcome)({ name: user.name, email: user.email });
+        }
+        catch (mailErr) {
+            console.error('Erro ao enviar e-mail de boas vindas:', mailErr);
+        }
         res.status(201).json({
             user: {
                 id: user.id,
@@ -147,3 +155,74 @@ const uploadAvatar = async (req, res) => {
     }
 };
 exports.uploadAvatar = uploadAvatar;
+// ==========================================
+// RECUPERAÇÃO DE SENHA
+// ==========================================
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (user) {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            // Expira em 15 minutos
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+            // Limpa códigos anteriores se tiver
+            await prisma.passwordReset.deleteMany({ where: { email } });
+            await prisma.passwordReset.create({
+                data: {
+                    email,
+                    code,
+                    expiresAt
+                }
+            });
+            try {
+                await (0, mailService_1.sendPasswordResetCode)(email, code);
+            }
+            catch (e) {
+                console.error("Error sending reset email:", e);
+            }
+        }
+        // Retorna sucesso até mesmo se o e-mail não existir por segurança
+        res.json({ message: 'Se este e-mail estiver cadastrado, você receberá o código em instantes.' });
+    }
+    catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ error: 'Erro ao processar solicitação.' });
+    }
+};
+exports.forgotPassword = forgotPassword;
+const resetPassword = async (req, res) => {
+    try {
+        const { email, code, password } = req.body;
+        const reset = await prisma.passwordReset.findFirst({
+            where: {
+                email,
+                code,
+                used: false,
+                expiresAt: { gt: new Date() }
+            }
+        });
+        if (!reset) {
+            return res.status(400).json({ error: 'Código inválido ou expirado. Solicite um novo.' });
+        }
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(400).json({ error: 'Usuário não encontrado' });
+        }
+        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        await prisma.user.update({
+            where: { email },
+            data: { password: hashedPassword }
+        });
+        await prisma.passwordReset.update({
+            where: { id: reset.id },
+            data: { used: true }
+        });
+        res.json({ message: 'Senha redefinida com sucesso! Faça login.' });
+    }
+    catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ error: 'Erro ao redefinir a senha' });
+    }
+};
+exports.resetPassword = resetPassword;

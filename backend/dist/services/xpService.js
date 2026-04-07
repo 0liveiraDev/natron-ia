@@ -68,8 +68,9 @@ const addXp = async (userId, category, amount) => {
     // Calculate new stats
     const currentStat = user[dbField] || 0;
     const newStat = currentStat + amount;
-    // Determine Rank
+    // Determine Rank and Level
     const { rank } = (0, exports.calculateRank)(newTotal);
+    const newLevel = Math.floor(newTotal / 100) + 1;
     // Update User
     await prisma.user.update({
         where: { id: userId },
@@ -77,6 +78,7 @@ const addXp = async (userId, category, amount) => {
             [dbField]: newStat,
             currentXp: newTotal,
             rank: rank,
+            level: newLevel,
         }
     });
     // Check for Rank Up (simple check)
@@ -112,8 +114,9 @@ const removeXp = async (userId, category, amount) => {
     // Calculate new attribute stat
     const currentStat = user[dbField] || 0;
     const newStat = Math.max(0, currentStat - amount); // Don't go below 0
-    // Determine new rank
+    // Determine new rank and level
     const { rank } = (0, exports.calculateRank)(newTotal);
+    const newLevel = Math.floor(newTotal / 100) + 1;
     // Update user
     await prisma.user.update({
         where: { id: userId },
@@ -121,6 +124,7 @@ const removeXp = async (userId, category, amount) => {
             [dbField]: newStat,
             currentXp: newTotal,
             rank: rank,
+            level: newLevel,
         }
     });
     // Check for rank down
