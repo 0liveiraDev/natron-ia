@@ -43,6 +43,21 @@ app.use('/api', routes_1.default);
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Trilha IA API is running' });
 });
+// ────────────────────────────────
+// SERVE FRONTEND (React Build) — Igual ao padrão UpCRIATIVE
+// ────────────────────────────────
+const frontendPath = path_1.default.resolve(__dirname, '../../frontend/dist');
+if (fs_1.default.existsSync(frontendPath)) {
+    console.log(`🌐 Serving frontend from: ${frontendPath}`);
+    app.use(express_1.default.static(frontendPath));
+    // SPA Fallback — qualquer rota que não seja /api ou /uploads vai para o React
+    app.get('*', (req, res) => {
+        res.sendFile(path_1.default.join(frontendPath, 'index.html'));
+    });
+}
+else {
+    console.log(`⚠️ Frontend build not found at: ${frontendPath}`);
+}
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
