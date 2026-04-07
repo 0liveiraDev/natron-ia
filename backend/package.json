@@ -11,7 +11,9 @@
         "wipe-all": "tsx scripts/wipe_all_data.ts",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
-        "prisma:studio": "prisma studio"
+        "prisma:studio": "prisma studio",
+        "db:push": "prisma db push --accept-data-loss",
+        "db:seed": "tsx prisma/seed.ts"
     },
     "keywords": [],
     "author": "",

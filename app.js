@@ -12,16 +12,16 @@ try {
         const name = process.env.DB_NAME || 'natron';
         process.env.DATABASE_URL = `mysql://${user}:${pass}@${host}:${port}/${name}`;
 
-        console.log('🔄 Sincronizando banco de dados com a Hostinger...');
+        console.log('🔄 Sincronizando banco de dados com a Hostinger (NPM RUN Mode)...');
         try {
             const { execSync } = require('child_process');
-            execSync('npx prisma db push --accept-data-loss', { 
+            execSync('npm run db:push', { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
                 stdio: 'inherit' 
             });
             console.log('✅ Banco sincronizado! Criando usuário admin se não existir...');
-            execSync('npx tsx prisma/seed.ts', { 
+            execSync('npm run db:seed', { 
                 cwd: __dirname + '/backend', 
                 env: process.env, 
                 stdio: 'inherit' 
