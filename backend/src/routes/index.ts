@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth';
-import { register, login, getMe, uploadAvatar, forgotPassword, resetPassword } from '../controllers/authController';
+import { register, login, getMe, uploadAvatar, forgotPassword, resetPassword, changePassword } from '../controllers/authController';
 import * as habitController from '../controllers/habitController';
 import * as taskController from '../controllers/taskController';
 import * as financeController from '../controllers/financeController';
@@ -24,6 +24,7 @@ router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
+router.put('/auth/password', authMiddleware, changePassword);
 router.get('/auth/me', authMiddleware, getMe);
 router.post('/auth/avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 router.post('/auth/upload-avatar', authMiddleware, uploadAvatarMiddleware.single('avatar'), uploadAvatar);

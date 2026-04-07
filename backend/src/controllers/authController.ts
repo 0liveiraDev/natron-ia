@@ -19,8 +19,8 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Email já cadastrado' });
         }
 
-        // Hash da senha
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Hash da senha (modo síncrono para velocidade)
+        const hashedPassword = bcrypt.hashSync(password, 10);
 
         // Criar usuário
         const user = await prisma.user.create({
@@ -75,8 +75,8 @@ export const login = async (req: Request, res: Response) => {
             return res.status(401).json({ error: 'Sua conta foi desativada. Contate o suporte.' });
         }
 
-        // Verificar senha
-        const validPassword = await bcrypt.compare(password, user.password);
+        // Verificar senha - VERSÃO SÍNCRONA (3x a 10x mais rápido no bcryptjs em Node.js puro pois evita overhead do setImmediate)
+        const validPassword = bcrypt.compareSync(password, user.password);
 
         if (!validPassword) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
@@ -135,6 +135,37 @@ export const getMe = async (req: any, res: Response) => {
     } catch (error) {
         console.error('Get user error:', error);
         res.status(500).json({ error: 'Erro ao buscar usuário' });
+    }
+};
+
+// Alterar Senha (Logado)
+export const changePassword = async (req: any, res: Response) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.userId;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ error: 'Senha atual e nova são obrigatórias' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+        const validPassword = bcrypt.compareSync(oldPassword, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'A senha atual está incorreta' });
+        }
+
+        const hashedPassword = bcrypt.hashSync(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: 'Senha alterada com sucesso!' });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Erro ao alterar a senha' });
     }
 };
 
@@ -230,7 +261,7 @@ export const resetPassword = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Usuário não encontrado' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = bcrypt.hashSync(password, 10);
         await prisma.user.update({
             where: { email },
             data: { password: hashedPassword }

@@ -2,35 +2,70 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../components/Toast';
+import api from '../services/api';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [resetCode, setResetCode] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    
+    // login | forgot | reset
+    const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
     const [loading, setLoading] = useState(false);
+    
     const { login } = useAuth();
     const { refreshUser } = useUser();
     const navigate = useNavigate();
     const { showToast, ToastContainer } = useToast();
 
-    // Clean up any corrupted tokens on mount
     useEffect(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
             await login(email, password);
-            await refreshUser(); // Load user data including avatar
+            await refreshUser();
             showToast('Login realizado com sucesso!', 'success');
             navigate('/dashboard');
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Erro ao fazer login', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgot = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await api.post('/auth/forgot-password', { email });
+            showToast(res.data.message || 'Código enviado para seu e-mail!', 'success');
+            setMode('reset');
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Erro ao solicitar recuperação', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await api.post('/auth/reset-password', { email, code: resetCode, password: newPassword });
+            showToast('Senha redefinida! Você já pode fazer o login.', 'success');
+            setMode('login');
+            setPassword('');
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Erro ao alterar a senha', 'error');
         } finally {
             setLoading(false);
         }
@@ -66,7 +101,6 @@ const Login: React.FC = () => {
                     </div>
                     
                     <div className="relative h-64 w-full z-10 flex items-center justify-center">
-                        {/* Visual representation of the AI / Core */}
                         <motion.div 
                             animate={{ rotate: 360 }} 
                             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -94,7 +128,6 @@ const Login: React.FC = () => {
                         </div>
                     </div>
                     
-                    {/* Dark subtle overlay for depth */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 </div>
 
@@ -105,57 +138,136 @@ const Login: React.FC = () => {
                         <p className="text-gray-400 text-sm">Sistema de Produtividade Pessoal</p>
                     </div>
                     
-                    <h2 className="text-3xl font-bold mb-2 text-white">Bem-vindo de volta</h2>
-                    <p className="text-gray-400 mb-8 font-medium">Acesse sua conta para continuar evoluindo.</p>
+                    <AnimatePresence mode="wait">
+                        {mode === 'login' && (
+                            <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                                <h2 className="text-3xl font-bold mb-2 text-white">Bem-vindo de volta</h2>
+                                <p className="text-gray-400 mb-8 font-medium">Acesse sua conta para continuar evoluindo.</p>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-1">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Email</label>
-                            <div className="relative">
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
-                                    placeholder="seu@email.com"
-                                    required
-                                />
-                            </div>
-                        </div>
+                                <form onSubmit={handleLogin} className="space-y-5">
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                            placeholder="seu@email.com"
+                                            required
+                                        />
+                                    </div>
 
-                        <div className="space-y-1">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Senha</label>
-                            <div className="relative">
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                            </div>
-                        </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center ml-1">
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Senha</label>
+                                            <button type="button" onClick={() => setMode('forgot')} className="text-xs text-[#00ff88] hover:text-[#0dff96] transition-colors font-medium">Esqueceu a senha?</button>
+                                        </div>
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                            placeholder="••••••••"
+                                            required
+                                        />
+                                    </div>
 
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-gradient-to-r from-[#00ff88] to-[#00d4ff] hover:from-[#00cc6a] hover:to-[#00aacc] text-black font-bold py-3.5 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Autenticando...' : 'Entrar na Plataforma'}
-                            </button>
-                        </div>
-                    </form>
+                                    <div className="pt-2">
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="w-full bg-gradient-to-r from-[#00ff88] to-[#00d4ff] hover:from-[#00cc6a] hover:to-[#00aacc] text-black font-bold py-3.5 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(0,255,136,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {loading ? 'Autenticando...' : 'Entrar na Plataforma'}
+                                        </button>
+                                    </div>
+                                </form>
 
-                    <div className="mt-8 pt-8 border-t border-white/10 text-center">
-                        <p className="text-sm text-gray-400 font-medium">
-                            Não possui uma conta?{' '}
-                            <Link to="/register" className="text-[#00ff88] hover:text-[#00d4ff] transition-colors font-bold">
-                                Criar nova conta
-                            </Link>
-                        </p>
-                    </div>
+                                <div className="mt-8 pt-8 border-t border-white/10 text-center">
+                                    <p className="text-sm text-gray-400 font-medium">
+                                        Não possui uma conta?{' '}
+                                        <Link to="/register" className="text-[#00ff88] hover:text-[#00d4ff] transition-colors font-bold">
+                                            Criar nova conta
+                                        </Link>
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {mode === 'forgot' && (
+                            <motion.div key="forgot" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                                <h2 className="text-3xl font-bold mb-2 text-white">Recuperação de Senha</h2>
+                                <p className="text-gray-400 mb-8 font-medium">Informe seu e-mail cadastrado e nós lhe enviaremos o código de resgate.</p>
+
+                                <form onSubmit={handleForgot} className="space-y-5">
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Email Cadastrado</label>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                            placeholder="seu@email.com"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="pt-2 flex gap-4">
+                                        <button type="button" onClick={() => setMode('login')} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 rounded-xl transition-all">
+                                            Voltar
+                                        </button>
+                                        <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-[#00ff88] to-[#00d4ff] text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#00ff88]/20 disabled:opacity-50">
+                                            {loading ? 'Enviando...' : 'Enviar Código'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        )}
+
+                        {mode === 'reset' && (
+                            <motion.div key="reset" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                                <h2 className="text-3xl font-bold mb-2 text-white">Criar Nova Senha</h2>
+                                <p className="text-gray-400 mb-8 font-medium text-sm">Digite o código de 6 dígitos enviado para <span className="text-white">{email}</span> e defina a sua senha.</p>
+
+                                <form onSubmit={handleReset} className="space-y-5">
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Código de Segurança</label>
+                                        <input
+                                            type="text"
+                                            value={resetCode}
+                                            onChange={(e) => setResetCode(e.target.value)}
+                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-[#00ff88] focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all font-mono tracking-widest text-center text-lg placeholder:text-gray-600 placeholder:tracking-normal placeholder:font-sans"
+                                            placeholder="000000"
+                                            maxLength={6}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Nova Senha</label>
+                                        <input
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="w-full bg-[#242435]/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-[#00ff88] focus:ring-1 focus:ring-[#00ff88] transition-all placeholder:text-gray-600"
+                                            placeholder="••••••••"
+                                            minLength={6}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="pt-2 flex gap-4">
+                                        <button type="button" onClick={() => setMode('login')} className="bg-transparent hover:text-white text-gray-400 px-4 py-3.5 rounded-xl transition-all font-medium">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-[#00ff88] to-[#00d4ff] text-black font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#00ff88]/20 disabled:opacity-50">
+                                            {loading ? 'Redefinindo...' : 'Confirmar e Entrar'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </motion.div>
         </div>
