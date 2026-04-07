@@ -21,13 +21,15 @@ const getRootPath = () => {
 const ROOT_PATH = getRootPath();
 const UPLOADS_PATH = path.join(ROOT_PATH, 'uploads');
 
-// Ensure upload directories exist
+// Ensure upload directories exist - Safely
 const uploadDirs = ['receipts', 'avatars'];
 uploadDirs.forEach(dir => {
     const fullPath = path.join(UPLOADS_PATH, dir);
     if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
-        console.log(`📁 Created directory: ${fullPath}`);
+        try {
+            fs.mkdirSync(fullPath, { recursive: true });
+            console.log(`📁 Created directory: ${fullPath}`);
+        } catch (e) {}
     }
 });
 
