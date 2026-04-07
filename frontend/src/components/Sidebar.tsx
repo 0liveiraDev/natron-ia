@@ -46,8 +46,8 @@ const Sidebar: React.FC = () => {
         { path: '/profile', icon: <User size={20} />, label: 'Meu Perfil' },
     ];
 
-    if (user?.role === 'admin') {
-        menuItems.push({ path: '/admin/users', icon: <Shield size={20} />, label: 'Admin (Usuários)' });
+    if (user?.role === 'Admin') {
+        menuItems.push({ path: '/admin/users', icon: <Shield size={20} />, label: 'Usuários' });
     }
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

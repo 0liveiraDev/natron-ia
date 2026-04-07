@@ -115,7 +115,7 @@ const AdminUsers: React.FC = () => {
                                         <td className="p-4 text-white font-medium">{u.name}</td>
                                         <td className="p-4 text-gray-400">{u.email}</td>
                                         <td className="p-4">
-                                            {u.role === 'admin' ? (
+                                            {u.role === 'Admin' ? (
                                                 <span className="inline-block px-2 py-1 bg-red-500/20 text-red-500 text-xs rounded-lg font-bold uppercase tracking-wider">
                                                     Admin
                                                 </span>
