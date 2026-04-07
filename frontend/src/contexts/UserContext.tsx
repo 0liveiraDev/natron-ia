@@ -86,11 +86,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 console.warn('User fetch timeout - releasing loading state');
                 setLoading(false);
             }
-        }, 3000); // 3 second timeout for faster fallback
+        }, 1500); // 1.5 second timeout for ultra-fast fallback
 
         fetchUser().finally(() => {
             if (!isCancelled) {
                 clearTimeout(timeoutId);
+                setLoading(false);
             }
         });
 
