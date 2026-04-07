@@ -38,7 +38,9 @@ const Login: React.FC = () => {
             showToast('Login realizado com sucesso!', 'success');
             navigate('/dashboard');
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Erro ao fazer login', 'error');
+            console.error('Login detailed error:', error);
+            const msg = error.response?.data?.error || error.message || 'Erro desconhecido';
+            showToast(`Falha: ${msg}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -52,7 +54,9 @@ const Login: React.FC = () => {
             showToast(res.data.message || 'Código enviado para seu e-mail!', 'success');
             setMode('reset');
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Erro ao solicitar recuperação', 'error');
+            console.error('Forgot detailed error:', error);
+            const msg = error.response?.data?.error || error.message || 'Erro desconhecido';
+            showToast(`Falha: ${msg}`, 'error');
         } finally {
             setLoading(false);
         }
