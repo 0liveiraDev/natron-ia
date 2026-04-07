@@ -8,12 +8,9 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { token, loading } = useAuth();
-
-    if (loading) {
-        return <LoadingScreen message="Autenticando..." />;
-    }
-
+    const { token } = useAuth();
+    // Removida a dependência de loading para evitar travamento visual
+    
     if (!token) {
         return <Navigate to="/login" replace />;
     }
