@@ -17,81 +17,173 @@
   <title>Natron IA</title>
   <style>
     /* Prevent white flash on load */
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
-      background-color: #0a0a0a;
+      background-color: #050505;
       color: #f5f5f7;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
     }
 
     #root {
       min-height: 100vh;
-      background-color: #0a0a0a;
+      background-color: #050505;
     }
 
-    /* Loading spinner */
-    .loading-spinner {
+    /* Premium Loader Container */
+    .loader-container {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      border: 3px solid #1a1a1a;
-      border-top: 3px solid #00ff88;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #0a1510 0%, #050505 100%);
+      z-index: 9999;
+    }
+
+    /* Mesh Background */
+    .loader-mesh {
+      position: absolute;
+      inset: 0;
+      opacity: 0.15;
+      background-image: radial-gradient(#00ff88 0.5px, transparent 0.5px);
+      background-size: 30px 30px;
+      pointer-events: none;
+    }
+
+    /* Outer Ring */
+    .loader-ring {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loader-ring::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 3px solid transparent;
+      border-top-color: #00ff88;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+    }
+
+    .loader-ring::after {
+      content: '';
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      border: 3px solid transparent;
+      border-bottom-color: #00ccff;
+      border-radius: 50%;
+      animation: spin-reverse 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      opacity: 0.6;
+    }
+
+    /* Central Pulse */
+    .loader-pulse {
+      width: 8px;
+      height: 8px;
+      background-color: #00ff88;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Text Animation */
+    .loader-text {
+      margin-top: 40px;
+      color: #00ff88;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      text-align: center;
+      opacity: 0.8;
+      animation: fade-text 2s ease-in-out infinite;
     }
 
     @keyframes spin {
-      0% {
-        transform: translate(-50%, -50%) rotate(0deg);
-      }
+      to { transform: rotate(360deg); }
+    }
 
-      100% {
-        transform: translate(-50%, -50%) rotate(360deg);
-      }
+    @keyframes spin-reverse {
+      to { transform: rotate(-360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.8); opacity: 0.5; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    @keyframes fade-text {
+      0%, 100% { opacity: 0.4; filter: blur(0.5px); }
+      50% { opacity: 1; filter: blur(0px); }
+    }
+
+    #recovery-zone {
+      margin-top: 32px;
+      text-align: center;
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 
 <body>
   <div id="root">
-    <div style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;z-index:9999;">
-      <div class="loading-spinner"></div>
-      <p style="color:#00ff88;font-family:Inter,sans-serif;font-size:12px;margin-top:24px;letter-spacing:3px;text-transform:uppercase;opacity:0.8;">Carregando Natron IA...</p>
-      <div id="recovery-zone" style="display:none;margin-top:20px;text-align:center;">
-        <p style="color:#8e8e93;font-family:Inter,sans-serif;font-size:11px;margin-bottom:12px;">O sistema está demorando para responder.</p>
-        <button id="btn-recovery" style="background:transparent;border:1px solid #00ff88;color:#00ff88;padding:8px 16px;border-radius:4px;font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">Limpar Cache e Forçar Atualização</button>
-        <p style="color:#444;font-family:Inter,sans-serif;font-size:9px;margin-top:8px;">Sua sessão (login) será mantida.</p>
+    <div class="loader-container">
+      <div class="loader-mesh"></div>
+      
+      <div class="loader-ring">
+        <div class="loader-pulse"></div>
+      </div>
+
+      <div class="loader-text">Iniciando Natron IA</div>
+
+      <div id="recovery-zone" style="display:none;">
+        <p style="color:#8e8e93;font-family:Inter,sans-serif;font-size:10px;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;">O sistema está demorando para responder</p>
+        <button id="btn-recovery" style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:10px 20px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition: all 0.3s ease;">Forçar Atualização</button>
+        <p style="color:#555;font-family:Inter,sans-serif;font-size:9px;margin-top:12px;">Sua sessão de login será preservada</p>
       </div>
     </div>
     <script>
-      // Intelligent recovery mechanism
+      // Recovery Logic
       setTimeout(function() {
         var zone = document.getElementById('recovery-zone');
         if (zone) zone.style.display = 'block';
-      }, 6000);
+      }, 7000);
 
       document.getElementById('btn-recovery').addEventListener('click', async function() {
-        this.innerText = 'LIMPANDO...';
+        this.innerText = 'PROCESSANDO...';
+        this.style.opacity = '0.5';
         this.disabled = true;
         
         try {
-          // 1. Unregister Service Workers
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             for(let reg of regs) await reg.unregister();
           }
-          
-          // 2. Clear Cache Storage
           if ('caches' in window) {
             const names = await caches.keys();
             for(let name of names) await caches.delete(name);
           }
-
-          // 3. Force reload (keeping LocalStorage/SessionStorage)
           window.location.reload(true);
         } catch (e) {
           window.location.reload();
