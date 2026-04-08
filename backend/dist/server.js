@@ -43,6 +43,15 @@ const routes_1 = __importDefault(require("./routes"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 dotenv_1.default.config();
+// Build DATABASE_URL from individual env vars if not already set (Hostinger compatibility)
+if (!process.env.DATABASE_URL && process.env.DB_HOST) {
+    const user = process.env.DB_USER || 'root';
+    const pass = process.env.DB_PASS || '';
+    const host = process.env.DB_HOST || '127.0.0.1';
+    const port = process.env.DB_PORT || '3306';
+    const name = process.env.DB_NAME || 'natron';
+    process.env.DATABASE_URL = `mysql://${user}:${pass}@${host}:${port}/${name}`;
+}
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 // Resolve absolute path for uploads
