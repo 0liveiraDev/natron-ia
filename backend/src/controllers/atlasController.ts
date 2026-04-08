@@ -176,12 +176,12 @@ export const chat = async (req: AuthRequest, res: Response) => {
         if (!assistantMessage) {
             // Expandido para captar mais jargões cotidianos, entradas compostas e "investimentos"
             const incomePatterns = [
-                /(?:registr(?:ar|e)|adicionar|inserir|lançar)\s+(?:uma\s+)?entrada\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|de|com)?\s*(.+)?/i,
-                /recebi\s+(?:uma\s+)?(?:entrada\s+|pix\s+|transferência\s+|transferencia\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
-                /ganhe?i\s+(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
+                /(?:registr(?:ar|e)|adicionar|inserir|lançar)\s+(?:um[a]?\s+)?(?:entrada|receita|pix)\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|de|com)?\s*(.+)?/i,
+                /recebi\s+(?:um[a]?\s+)?(?:entrada\s+|pix\s+|transferência\s+|transferencia\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
+                /ganhe?i\s+(?:um[a]?\s+)?(?:entrada\s+|pix\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
                 /renda\s+(?:extra\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
-                /invest(?:i|imento)\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
-                /apliquei\s+(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
+                /invest(?:i|imento)\s+(?:um[a]?\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
+                /apliquei\s+(?:um[a]?\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
             ];
 
             for (const pattern of incomePatterns) {
