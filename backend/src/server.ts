@@ -29,7 +29,7 @@ const getRootPath = () => {
 };
 
 const ROOT_PATH = getRootPath();
-const UPLOADS_PATH = path.join(ROOT_PATH, 'uploads');
+const UPLOADS_PATH = process.env.STORAGE_PATH || path.join(ROOT_PATH, 'uploads');
 
 // Ensure upload directories exist silently
 ['receipts', 'avatars'].forEach(dir => {

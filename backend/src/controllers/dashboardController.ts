@@ -175,8 +175,8 @@ export const getWeeklyProgress = async (req: any, res: Response) => {
             // Get expenses for this day - using DATE() to ignore time
             const expenses = await prisma.$queryRaw<Array<{ id: string; amount: number; category: string; date: Date }>>`
                 SELECT id, amount, category, date
-                FROM "Transaction"
-                WHERE "userId" = ${userId}
+                FROM \`Transaction\`
+                WHERE \`userId\` = ${userId}
                 AND type = 'saida'
                 AND DATE(date) = DATE(${startOfDay})
             `;
@@ -195,8 +195,8 @@ export const getWeeklyProgress = async (req: any, res: Response) => {
             // Get income for this day
             const income = await prisma.$queryRaw<Array<{ amount: number }>>`
                 SELECT amount
-                FROM "Transaction"
-                WHERE "userId" = ${userId}
+                FROM \`Transaction\`
+                WHERE \`userId\` = ${userId}
                 AND type = 'entrada'
                 AND DATE(date) = DATE(${startOfDay})
             `;
