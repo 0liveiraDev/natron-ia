@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
@@ -23,10 +23,7 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
     const { showToast, ToastContainer } = useToast();
 
-    useEffect(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    }, []);
+    // Token is only cleared by explicit logout, not on page mount
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

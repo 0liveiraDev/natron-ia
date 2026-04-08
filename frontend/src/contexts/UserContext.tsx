@@ -35,17 +35,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUser = async () => {
         try {
             const response = await api.get('/auth/me');
-            console.log('👤 User data loaded:', response.data);
-            console.log('🖼️ Avatar URL from API:', response.data.avatarUrl);
             setUser(response.data);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching user:', error);
-            // Clear invalid token if user fetch fails
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
+            // ONLY clear token on 401 (truly invalid token)
+            // Do NOT clear on network errors, timeouts, 500s etc
+            if (error?.response?.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+            }
         } finally {
-            // CRITICAL: Always set loading to false
             setLoading(false);
         }
     };
