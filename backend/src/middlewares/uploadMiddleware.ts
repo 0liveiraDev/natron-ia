@@ -4,8 +4,12 @@ import { Request } from 'express';
 
 import fs from 'fs';
 
-// Resolve absolute path for uploads to be environment-agnostic
+// Use STORAGE_PATH env var if available (persists across deploys on Hostinger)
+// Falls back to detecting uploads folder relative to cwd
 const getUploadsPath = () => {
+    if (process.env.STORAGE_PATH) {
+        return process.env.STORAGE_PATH;
+    }
     const cwd = process.cwd();
     const paths = [
         path.join(cwd, 'uploads'),
@@ -18,6 +22,10 @@ const getUploadsPath = () => {
 };
 
 const UPLOADS_PATH = getUploadsPath();
+
+// Ensure directories exist
+try { fs.mkdirSync(path.join(UPLOADS_PATH, 'receipts'), { recursive: true }); } catch(e) {}
+try { fs.mkdirSync(path.join(UPLOADS_PATH, 'avatars'), { recursive: true }); } catch(e) {}
 
 // Configuração de armazenamento
 const storage = multer.diskStorage({

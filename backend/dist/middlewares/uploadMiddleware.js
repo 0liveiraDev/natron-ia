@@ -7,8 +7,12 @@ exports.uploadAvatar = exports.upload = void 0;
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-// Resolve absolute path for uploads to be environment-agnostic
+// Use STORAGE_PATH env var if available (persists across deploys on Hostinger)
+// Falls back to detecting uploads folder relative to cwd
 const getUploadsPath = () => {
+    if (process.env.STORAGE_PATH) {
+        return process.env.STORAGE_PATH;
+    }
     const cwd = process.cwd();
     const paths = [
         path_1.default.join(cwd, 'uploads'),
@@ -21,6 +25,15 @@ const getUploadsPath = () => {
     return paths[0];
 };
 const UPLOADS_PATH = getUploadsPath();
+// Ensure directories exist
+try {
+    fs_1.default.mkdirSync(path_1.default.join(UPLOADS_PATH, 'receipts'), { recursive: true });
+}
+catch (e) { }
+try {
+    fs_1.default.mkdirSync(path_1.default.join(UPLOADS_PATH, 'avatars'), { recursive: true });
+}
+catch (e) { }
 // Configuração de armazenamento
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {

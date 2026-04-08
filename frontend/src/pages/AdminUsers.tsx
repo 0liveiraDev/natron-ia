@@ -23,8 +23,8 @@ const AdminUsers: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
 
-    // Redireciona se não for admin
-    if (user && user.role !== 'admin') {
+    // Redireciona se não for admin (case-insensitive)
+    if (user && user.role?.toLowerCase() !== 'admin') {
         return <Navigate to="/dashboard" replace />;
     }
 
