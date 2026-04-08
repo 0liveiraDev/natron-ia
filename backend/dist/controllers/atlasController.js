@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.chat = void 0;
 const client_1 = require("@prisma/client");
 const activityService_1 = require("../services/activityService");
+const xpService_1 = require("../services/xpService");
 const prisma = new client_1.PrismaClient();
 // Atlas Local - Assistente sem necessidade de API externa
 const chat = async (req, res) => {
@@ -148,31 +149,46 @@ const chat = async (req, res) => {
                 }
             }
         }
-        // 3. Registrar Entrada
+        // 3. Registrar Entrada / Investimento
         if (!assistantMessage) {
+            // Expandido para captar mais jargões cotidianos, entradas compostas e "investimentos"
             const incomePatterns = [
-                /registr(?:ar|e)\s+(?:uma\s+)?entrada\s+de\s+(\d+(?:[.,]\d+)?)/i,
-                /recebi\s+(\d+(?:[.,]\d+)?)/i,
-                /ganhe?i\s+(\d+(?:[.,]\d+)?)/i,
-                /renda\s+de\s+(\d+(?:[.,]\d+)?)/i,
+                /(?:registr(?:ar|e)|adicionar|inserir|lançar)\s+(?:uma\s+)?entrada\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|de|com)?\s*(.+)?/i,
+                /recebi\s+(?:uma\s+)?(?:entrada\s+|pix\s+|transferência\s+|transferencia\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
+                /ganhe?i\s+(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
+                /renda\s+(?:extra\s+)?(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:de|em|com)?\s*(.+)?/i,
+                /invest(?:i|imento)\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
+                /apliquei\s+(\d+(?:[.,]\d+)?)\s*(?:reais?\s+)?(?:em|no|na)?\s*(.+)?/i,
             ];
             for (const pattern of incomePatterns) {
                 const match = message.match(pattern);
                 if (match) {
                     const amount = parseFloat(match[1].replace(',', '.'));
+                    let categoryContext = match[2]?.toLowerCase().trim();
+                    const isInvestment = message.includes('investi') || message.includes('apliquei') || categoryContext?.includes('tesouro');
+                    const category = isInvestment ? 'investimentos' : 'outros';
+                    const description = (categoryContext && categoryContext !== 'reais') ? categoryContext : undefined;
                     const transaction = await prisma.transaction.create({
                         data: {
                             amount,
                             type: 'entrada',
-                            category: 'outros',
+                            category,
+                            description,
                             userId,
                         },
                     });
-                    await (0, activityService_1.logActivity)(userId, 'transaction_added', `Entrada registrada por Atlas: R$ ${amount}`);
-                    // No XP for regular income - only investment income (entrada + investimento) awards XP
-                    // Atlas currently doesn't support specifying investment category
-                    actions.push({ type: 'income_added', data: transaction });
-                    assistantMessage = `💰 Ótimo! Entrada de R$ ${amount.toFixed(2)} registrada. Continue assim!`;
+                    if (isInvestment) {
+                        await (0, activityService_1.logActivity)(userId, 'transaction_added', `Investimento registrado por Atlas: R$ ${amount}`);
+                        // Awward XP para investimento automaticamente
+                        await (0, xpService_1.addXp)(userId, 'FINANCEIRA', 5);
+                        actions.push({ type: 'income_added', data: transaction });
+                        assistantMessage = `📈 Excelente! Investimento de R$ ${amount.toFixed(2)} registrado com sucesso. Você ganhou +5 XP Financeira!`;
+                    }
+                    else {
+                        await (0, activityService_1.logActivity)(userId, 'transaction_added', `Entrada registrada por Atlas: R$ ${amount}`);
+                        actions.push({ type: 'income_added', data: transaction });
+                        assistantMessage = `💰 Ótimo! Entrada de R$ ${amount.toFixed(2)} registrada. Continue assim!`;
+                    }
                     break;
                 }
             }
