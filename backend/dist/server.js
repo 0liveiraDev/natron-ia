@@ -98,7 +98,7 @@ if (fs_1.default.existsSync(frontendPath)) {
 }
 app.listen(PORT, () => {
     console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
-    // Background: ensure admin exists (non-blocking)
+    // Background: ensure admin exists and has correct role (non-blocking)
     setTimeout(async () => {
         try {
             const { PrismaClient } = await Promise.resolve().then(() => __importStar(require('@prisma/client')));
@@ -117,6 +117,13 @@ app.listen(PORT, () => {
                         rank: 'Mestre da Academia',
                         level: 100,
                     }
+                });
+            }
+            else if (exists.role !== 'Admin') {
+                // Fix: promote existing user to Admin
+                await prisma.user.update({
+                    where: { email: adminEmail },
+                    data: { role: 'Admin', rank: 'Mestre da Academia', level: 100 }
                 });
             }
             await prisma.$disconnect();
