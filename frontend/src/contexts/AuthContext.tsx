@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import api from '../services/api';
 
 interface User {
@@ -19,20 +19,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
-    }, []);
+    // Initialize synchronously from localStorage to prevent redirect flash
+    const [user, setUser] = useState<User | null>(() => {
+        try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    });
+    const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
     const login = async (email: string, password: string) => {
         const response = await api.post('/auth/login', { email, password });
@@ -64,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, login, register, logout, loading: false }}>
             {children}
         </AuthContext.Provider>
     );
