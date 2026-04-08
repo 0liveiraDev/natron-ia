@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -12,7 +45,7 @@ const fs_1 = __importDefault(require("fs"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-// Resolve absolute path for uploads to be environment-agnostic
+// Resolve absolute path for uploads
 const getRootPath = () => {
     const cwd = process.cwd();
     if (fs_1.default.existsSync(path_1.default.join(cwd, 'uploads')))
@@ -23,41 +56,62 @@ const getRootPath = () => {
 };
 const ROOT_PATH = getRootPath();
 const UPLOADS_PATH = path_1.default.join(ROOT_PATH, 'uploads');
-// Ensure upload directories exist
-const uploadDirs = ['receipts', 'avatars'];
-uploadDirs.forEach(dir => {
+// Ensure upload directories exist silently
+['receipts', 'avatars'].forEach(dir => {
     const fullPath = path_1.default.join(UPLOADS_PATH, dir);
-    if (!fs_1.default.existsSync(fullPath)) {
+    try {
         fs_1.default.mkdirSync(fullPath, { recursive: true });
-        console.log(`📁 Created directory: ${fullPath}`);
     }
+    catch (e) { }
 });
-console.log(`📦 Serving static files from: ${UPLOADS_PATH}`);
 // Middlewares
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: ['https://natron.site', 'http://natron.site', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express_1.default.json());
 app.use('/uploads', express_1.default.static(UPLOADS_PATH));
 // Routes
 app.use('/api', routes_1.default);
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Trilha IA API is running' });
+    res.json({ status: 'ok', message: 'Natron IA API is running' });
 });
-// ────────────────────────────────
-// SERVE FRONTEND (React Build) — Igual ao padrão UpCRIATIVE
-// ────────────────────────────────
+// Serve Frontend (React Build)
 const frontendPath = path_1.default.resolve(__dirname, '../../frontend/dist');
 if (fs_1.default.existsSync(frontendPath)) {
-    console.log(`🌐 Serving frontend from: ${frontendPath}`);
     app.use(express_1.default.static(frontendPath));
-    // SPA Fallback — qualquer rota que não seja /api ou /uploads vai para o React
     app.get('*', (req, res) => {
         res.sendFile(path_1.default.join(frontendPath, 'index.html'));
     });
 }
-else {
-    console.log(`⚠️ Frontend build not found at: ${frontendPath}`);
-}
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
+    // Background: ensure admin exists (non-blocking)
+    setTimeout(async () => {
+        try {
+            const { PrismaClient } = await Promise.resolve().then(() => __importStar(require('@prisma/client')));
+            const bcrypt = await Promise.resolve().then(() => __importStar(require('bcryptjs')));
+            const prisma = new PrismaClient();
+            const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
+            const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
+            if (!exists) {
+                const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
+                await prisma.user.create({
+                    data: {
+                        name: 'Natron IA Admin',
+                        email: adminEmail,
+                        password: hash,
+                        role: 'Admin',
+                        rank: 'Mestre da Academia',
+                        level: 100,
+                    }
+                });
+            }
+            await prisma.$disconnect();
+        }
+        catch (e) { }
+    }, 5000);
 });

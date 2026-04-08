@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.forgotPassword = exports.uploadAvatar = exports.getMe = exports.login = exports.register = void 0;
+exports.resetPassword = exports.forgotPassword = exports.uploadAvatar = exports.changePassword = exports.getMe = exports.login = exports.register = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -19,8 +19,8 @@ const register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ error: 'Email já cadastrado' });
         }
-        // Hash da senha
-        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
+        // Hash da senha (modo síncrono para velocidade)
+        const hashedPassword = bcryptjs_1.default.hashSync(password, 10);
         // Criar usuário
         const user = await prisma.user.create({
             data: {
@@ -52,7 +52,7 @@ const register = async (req, res) => {
     }
     catch (error) {
         console.error('Register error:', error);
-        res.status(500).json({ error: 'Erro ao criar usuário' });
+        res.status(500).json({ error: 'Erro ao criar usuário: ' + (error.message || String(error)) });
     }
 };
 exports.register = register;
@@ -69,8 +69,8 @@ const login = async (req, res) => {
         if (!user.isActive) {
             return res.status(401).json({ error: 'Sua conta foi desativada. Contate o suporte.' });
         }
-        // Verificar senha
-        const validPassword = await bcryptjs_1.default.compare(password, user.password);
+        // Verificar senha - VERSÃO SÍNCRONA (3x a 10x mais rápido no bcryptjs em Node.js puro pois evita overhead do setImmediate)
+        const validPassword = bcryptjs_1.default.compareSync(password, user.password);
         if (!validPassword) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
@@ -90,7 +90,7 @@ const login = async (req, res) => {
     }
     catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Erro ao fazer login' });
+        res.status(500).json({ error: 'Erro ao fazer login: ' + (error.message || String(error)) });
     }
 };
 exports.login = login;
@@ -124,10 +124,38 @@ const getMe = async (req, res) => {
     }
     catch (error) {
         console.error('Get user error:', error);
-        res.status(500).json({ error: 'Erro ao buscar usuário' });
+        res.status(500).json({ error: 'Erro ao buscar usuário: ' + (error.message || String(error)) });
     }
 };
 exports.getMe = getMe;
+// Alterar Senha (Logado)
+const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.userId;
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ error: 'Senha atual e nova são obrigatórias' });
+        }
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        const validPassword = bcryptjs_1.default.compareSync(oldPassword, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'A senha atual está incorreta' });
+        }
+        const hashedPassword = bcryptjs_1.default.hashSync(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+        res.json({ message: 'Senha alterada com sucesso!' });
+    }
+    catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Erro ao alterar a senha: ' + (error.message || String(error)) });
+    }
+};
+exports.changePassword = changePassword;
 // Upload avatar
 const uploadAvatar = async (req, res) => {
     try {
@@ -135,7 +163,8 @@ const uploadAvatar = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        const APP_URL = process.env.APP_URL || 'https://natron.site';
+        const avatarUrl = `${APP_URL}/uploads/avatars/${req.file.filename}`;
         const user = await prisma.user.update({
             where: { id: userId },
             data: { avatarUrl },
@@ -209,7 +238,7 @@ const resetPassword = async (req, res) => {
         if (!user) {
             return res.status(400).json({ error: 'Usuário não encontrado' });
         }
-        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
+        const hashedPassword = bcryptjs_1.default.hashSync(password, 10);
         await prisma.user.update({
             where: { email },
             data: { password: hashedPassword }

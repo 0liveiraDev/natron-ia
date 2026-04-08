@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Resolve absolute path for uploads to be environment-agnostic
+// Resolve absolute path for uploads
 const getRootPath = () => {
     const cwd = process.cwd();
     if (fs.existsSync(path.join(cwd, 'uploads'))) return cwd;
@@ -21,19 +21,11 @@ const getRootPath = () => {
 const ROOT_PATH = getRootPath();
 const UPLOADS_PATH = path.join(ROOT_PATH, 'uploads');
 
-// Ensure upload directories exist - Safely
-const uploadDirs = ['receipts', 'avatars'];
-uploadDirs.forEach(dir => {
+// Ensure upload directories exist silently
+['receipts', 'avatars'].forEach(dir => {
     const fullPath = path.join(UPLOADS_PATH, dir);
-    if (!fs.existsSync(fullPath)) {
-        try {
-            fs.mkdirSync(fullPath, { recursive: true });
-            console.log(`📁 Created directory: ${fullPath}`);
-        } catch (e) {}
-    }
+    try { fs.mkdirSync(fullPath, { recursive: true }); } catch (e) {}
 });
-
-console.log(`📦 Serving static files from: ${UPLOADS_PATH}`);
 
 // Middlewares
 app.use(cors({
@@ -50,57 +42,45 @@ app.use('/api', routes);
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Trilha IA API is running' });
+    res.json({ status: 'ok', message: 'Natron IA API is running' });
 });
 
-// ────────────────────────────────
-// SERVE FRONTEND (React Build) — Igual ao padrão UpCRIATIVE
-// ────────────────────────────────
+// Serve Frontend (React Build)
 const frontendPath = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendPath)) {
-    console.log(`🌐 Serving frontend from: ${frontendPath}`);
     app.use(express.static(frontendPath));
-
-    // SPA Fallback — qualquer rota que não seja /api ou /uploads vai para o React
     app.get('*', (req, res) => {
         res.sendFile(path.join(frontendPath, 'index.html'));
     });
-} else {
-    console.log(`⚠️ Frontend build not found at: ${frontendPath}`);
 }
 
-app.listen(PORT, async () => {
-    console.log(`🚀 Natron IA - Server running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
 
-    // background maintenance - 5s delay to keep boot super fast
+    // Background: ensure admin exists (non-blocking)
     setTimeout(async () => {
         try {
-            console.log('⚡ Running background maintenance...');
             const { PrismaClient } = await import('@prisma/client');
             const bcrypt = await import('bcryptjs');
             const prisma = new PrismaClient();
 
-            // 1) Ensure Admin
             const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
-            const adminExists = await prisma.user.findUnique({ where: { email: adminEmail } });
+            const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
 
-            if (!adminExists) {
-                const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
+            if (!exists) {
+                const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
                 await prisma.user.create({
                     data: {
                         name: 'Natron IA Admin',
                         email: adminEmail,
-                        password: hashedPassword,
+                        password: hash,
                         role: 'Admin',
                         rank: 'Mestre da Academia',
                         level: 100,
                     }
                 });
-                console.log(`✅ Admin Created: ${adminEmail}`);
             }
             await prisma.$disconnect();
-        } catch (err: any) {
-            console.warn('⚠️ Background maint suppressed:', err.message);
-        }
+        } catch (e) {}
     }, 5000);
 });

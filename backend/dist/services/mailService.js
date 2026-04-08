@@ -19,7 +19,7 @@ const transporter = nodemailer_1.default.createTransport({
     }
 });
 const FROM = process.env.MAIL_FROM || 'Natron IA / Trilha IA <contato@natron.site>';
-const APP_URL = process.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+const APP_URL = process.env.APP_URL || 'https://natron.site';
 // ? HTML Base Template inspired by the dark minimalist gamified theme
 function baseTemplate(content) {
     return `
