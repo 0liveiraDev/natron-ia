@@ -1,5 +1,4 @@
-// Basic Service Worker for PWA compliance and offline support
-const CACHE_NAME = 'natron-ia-v2';
+const CACHE_NAME = 'natron-ia-v3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -31,15 +30,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Network-first strategy to prevent infinite loading loops with outdated index.html
+    const url = new URL(event.request.url);
+    
+    // FORBID caching of API and dynamic uploads
+    if (url.pathname.startsWith('/api') || url.pathname.startsWith('/uploads')) {
+        return; // Let browser handle normally (Network Only)
+    }
+
+    // Network-first for everything else (HTML, Assets)
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Return fresh network response
                 return response;
             })
             .catch(() => {
-                // On failure (offline), fallback to cache
                 return caches.match(event.request);
             })
     );
