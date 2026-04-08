@@ -207,9 +207,9 @@ export const chat = async (req: AuthRequest, res: Response) => {
                     if (isInvestment) {
                         await logActivity(userId, 'transaction_added', `Investimento registrado por Atlas: R$ ${amount}`);
                         // Awward XP para investimento automaticamente
-                        await addXp(userId, 'FINANCEIRA', 5);
+                        await addXp(userId, 'FINANCEIRO', 5);
                         actions.push({ type: 'income_added', data: transaction });
-                        assistantMessage = `📈 Excelente! Investimento de R$ ${amount.toFixed(2)} registrado com sucesso. Você ganhou +5 XP Financeira!`;
+                        assistantMessage = `📈 Excelente! Investimento de R$ ${amount.toFixed(2)} registrado com sucesso. Você ganhou +5 XP Financeiro!`;
                     } else {
                         await logActivity(userId, 'transaction_added', `Entrada registrada por Atlas: R$ ${amount}`);
                         actions.push({ type: 'income_added', data: transaction });

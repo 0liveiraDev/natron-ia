@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
 import { Bot } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -10,6 +11,7 @@ interface Message {
 }
 
 const Atlas: React.FC = () => {
+    const { refreshUser } = useUser();
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
@@ -233,8 +235,10 @@ const Atlas: React.FC = () => {
                 { role: 'assistant', content: assistantMessage },
             ]);
 
-            // Mostrar notificações de ações executadas
+            // Mostrar notificações de ações executadas e recarregar dados do usuário global
             if (actions && actions.length > 0) {
+                let hasXpChanges = false;
+                
                 actions.forEach((action: any) => {
                     if (action.type === 'task_created') {
                         showToast('✅ Tarefa criada com sucesso!', 'success');
@@ -242,8 +246,14 @@ const Atlas: React.FC = () => {
                         showToast('💸 Gasto registrado com sucesso!', 'success');
                     } else if (action.type === 'income_added') {
                         showToast('💰 Entrada registrada com sucesso!', 'success');
+                        hasXpChanges = true; // Entradas (especialmente investimentos) podem dar XP
                     }
                 });
+                
+                // Sempre recarrega se teve mutações ligadas a finanças/xp/level
+                if (hasXpChanges || actions.some((a: any) => a.type.includes('task') || a.type.includes('income'))) {
+                    await refreshUser();
+                }
             }
         } catch (error) {
             showToast('Erro ao conversar com Atlas', 'error');
