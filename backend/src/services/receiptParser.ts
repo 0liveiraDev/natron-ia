@@ -148,7 +148,7 @@ function extractReceiver(text: string): string | undefined {
         const match = textNorm.match(regex);
         if (match && match[1]) {
             let name = match[1].trim();
-            
+
             // Define a hard stop se a string de nome contiver palavras-chave irrelevantes arrastadas
             const stopWords = [' cpf', ' cnpj', ' data', ' valor', ' banco', ' instituicao', ' chave'];
             for (const sw of stopWords) {
@@ -191,7 +191,7 @@ function identifyEstablishmentAndCategory(text: string): {
         'acougue': { type: 'essencial', category: 'alimentacao', subcategory: 'mercado', name: 'Açougue' },
         'padaria': { type: 'essencial', category: 'alimentacao', subcategory: 'padaria', name: 'Padaria' },
         'quitanda': { type: 'essencial', category: 'alimentacao', subcategory: 'feira', name: 'Quitanda' },
-        
+
         // ============= ALIMENTAÇÃO - RESTAURANTES/DELIVERY (Variável) =============
         'ifood': { type: 'variavel', category: 'alimentacao', subcategory: 'delivery_ifood', name: 'iFood' },
         'rappi': { type: 'variavel', category: 'alimentacao', subcategory: 'delivery_rappi', name: 'Rappi' },
@@ -221,7 +221,7 @@ function identifyEstablishmentAndCategory(text: string): {
         'onibus': { type: 'variavel', category: 'transporte', subcategory: 'transporte_publico', name: 'Ônibus' },
         'metro': { type: 'variavel', category: 'transporte', subcategory: 'transporte_publico', name: 'Metrô' },
         'cptm': { type: 'variavel', category: 'transporte', subcategory: 'transporte_publico', name: 'CPTM' },
-        
+
         'posto': { type: 'essencial', category: 'transporte', subcategory: 'combustivel', name: 'Posto de Combustível' },
         'ipiranga': { type: 'essencial', category: 'transporte', subcategory: 'combustivel', name: 'Posto Ipiranga' },
         'shell': { type: 'essencial', category: 'transporte', subcategory: 'combustivel', name: 'Posto Shell' },
@@ -268,7 +268,7 @@ function identifyEstablishmentAndCategory(text: string): {
         'sulamerica': { type: 'essencial', category: 'saude', subcategory: 'plano', name: 'SulAmérica' },
         'hospital': { type: 'essencial', category: 'saude', subcategory: 'hospital', name: 'Hospital' },
         'clinica': { type: 'essencial', category: 'saude', subcategory: 'clinica', name: 'Clínica' },
-        
+
         'barbearia': { type: 'variavel', category: 'servicos', subcategory: 'beleza', name: 'Barbearia' },
         'salao': { type: 'variavel', category: 'servicos', subcategory: 'beleza', name: 'Salão de Beleza' },
         'manicure': { type: 'variavel', category: 'servicos', subcategory: 'beleza', name: 'Manicure' },
@@ -324,7 +324,7 @@ function identifyEstablishmentAndCategory(text: string): {
         'escola': { type: 'essencial', category: 'educacao', subcategory: 'escola', name: 'Escola' },
         'livro': { type: 'variavel', category: 'educacao', subcategory: 'livros', name: 'Livro' },
         'livraria': { type: 'variavel', category: 'educacao', subcategory: 'livros', name: 'Livraria' },
-        
+
         // ============= HOSPEDAGEM / VIAGENS (Variável) =============
         'airbnb': { type: 'variavel', category: 'lazer', subcategory: 'hospedagem', name: 'Airbnb' },
         'booking': { type: 'variavel', category: 'lazer', subcategory: 'hospedagem', name: 'Booking.com' },
