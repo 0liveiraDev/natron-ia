@@ -116,8 +116,9 @@ const server = app.listen(PORT, () => {
     console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
 
     // Background: ensure admin exists and has correct role (non-blocking)
-    setTimeout(async () => {
+    (async () => {
         try {
+            await prisma.$connect();
             const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
             const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
 
@@ -142,5 +143,5 @@ const server = app.listen(PORT, () => {
         } catch (e) {
             console.error('Admin seed error:', e);
         }
-    }, 5000);
+    })();
 });
