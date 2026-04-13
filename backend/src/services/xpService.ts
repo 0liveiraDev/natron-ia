@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { logActivity } from './activityService';
-
-const prisma = new PrismaClient();
 
 // Rank thresholds - Naruto Ninja Hierarchy
 const ranks = [

@@ -1,17 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.chat = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const activityService_1 = require("../services/activityService");
 const xpService_1 = require("../services/xpService");
-const prisma = new client_1.PrismaClient();
 // Atlas Local - Assistente sem necessidade de API externa
 const chat = async (req, res) => {
     try {
         const { message } = req.body;
         const userId = req.userId;
         // Buscar contexto do usuário
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             select: { name: true },
         });
@@ -30,7 +29,7 @@ const chat = async (req, res) => {
             const match = message.match(pattern);
             if (match) {
                 const taskTitle = match[1].trim();
-                const task = await prisma.task.create({
+                const task = await prisma_1.prisma.task.create({
                     data: {
                         title: taskTitle,
                         userId,
@@ -132,7 +131,7 @@ const chat = async (req, res) => {
                     };
                     const category = fullCategoryMap[categoryInput] || (categoryInput in fullCategoryMap ? categoryInput : 'outros');
                     const description = categoryInput !== 'outros' ? categoryInput : undefined;
-                    const transaction = await prisma.transaction.create({
+                    const transaction = await prisma_1.prisma.transaction.create({
                         data: {
                             amount,
                             type: 'saida',
@@ -168,7 +167,7 @@ const chat = async (req, res) => {
                     const isInvestment = message.includes('investi') || message.includes('apliquei') || categoryContext?.includes('tesouro');
                     const category = isInvestment ? 'investimentos' : 'outros';
                     const description = (categoryContext && categoryContext !== 'reais') ? categoryContext : undefined;
-                    const transaction = await prisma.transaction.create({
+                    const transaction = await prisma_1.prisma.transaction.create({
                         data: {
                             amount,
                             type: 'entrada',
@@ -199,9 +198,9 @@ const chat = async (req, res) => {
             const month = today.getMonth() + 1;
             const year = today.getFullYear();
             const [habits, tasks, transactions] = await Promise.all([
-                prisma.habit.findMany({ where: { userId }, include: { logs: true } }),
-                prisma.task.findMany({ where: { userId } }),
-                prisma.transaction.findMany({ where: { userId } }),
+                prisma_1.prisma.habit.findMany({ where: { userId }, include: { logs: true } }),
+                prisma_1.prisma.task.findMany({ where: { userId } }),
+                prisma_1.prisma.transaction.findMany({ where: { userId } }),
             ]);
             const completedTasks = tasks.filter(t => t.status === 'completed').length;
             const totalTasks = tasks.length;

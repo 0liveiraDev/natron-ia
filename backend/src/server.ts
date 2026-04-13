@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import routes from './routes';
 import path from 'path';
 import fs from 'fs';
+import { prisma } from './lib/prisma';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -51,8 +53,14 @@ app.use('/uploads', express.static(UPLOADS_PATH));
 app.use('/api', routes);
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Natron IA API is running' });
+app.get('/health', async (req, res) => {
+    try {
+        // Testa a conexão com o banco de dados
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({ status: 'ok', message: 'Natron IA API is running', db: 'connected' });
+    } catch (err) {
+        res.status(503).json({ status: 'degraded', message: 'API running but DB unreachable' });
+    }
 });
 
 // Serve Frontend (React Build)
@@ -64,16 +72,52 @@ if (fs.existsSync(frontendPath)) {
     });
 }
 
-app.listen(PORT, () => {
+// ==========================================
+// 🛡️ ESCUDO DE ESTABILIDADE — Crash Protection
+// uncaughtException DEVE encerrar o processo.
+// Deixar vivo após exception não tratada = servidor em estado zumbi (causa 503).
+// O PM2 reinicia automaticamente após process.exit(1).
+// ==========================================
+process.on('uncaughtException', (error) => {
+    const ts = new Date().toISOString();
+    console.error(`\n[❌ UNCAUGHT EXCEPTION] ${ts}`);
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    // Aguarda 1s para garantir que os logs acima sejam gravados antes de encerrar
+    setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    const ts = new Date().toISOString();
+    console.error(`\n[❌ UNHANDLED REJECTION] ${ts}`);
+    console.error('Promise:', promise);
+    console.error('Reason:', reason);
+    // Rejeições não tratadas não encerram o processo, mas são logadas com contexto
+});
+
+// ==========================================
+// GRACEFUL SHUTDOWN — libera conexões MySQL corretamente
+// ==========================================
+const gracefulShutdown = async (signal: string) => {
+    console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
+    try {
+        await prisma.$disconnect();
+        console.log('✅ Prisma disconnected.');
+    } catch (e) {
+        console.error('Error disconnecting Prisma:', e);
+    }
+    process.exit(0);
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+const server = app.listen(PORT, () => {
     console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
 
     // Background: ensure admin exists and has correct role (non-blocking)
     setTimeout(async () => {
         try {
-            const { PrismaClient } = await import('@prisma/client');
-            const bcrypt = await import('bcryptjs');
-            const prisma = new PrismaClient();
-
             const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
             const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
 
@@ -90,13 +134,13 @@ app.listen(PORT, () => {
                     }
                 });
             } else if (exists.role !== 'Admin') {
-                // Fix: promote existing user to Admin
                 await prisma.user.update({
                     where: { email: adminEmail },
                     data: { role: 'Admin', rank: 'Mestre da Academia', level: 100 }
                 });
             }
-            await prisma.$disconnect();
-        } catch (e) {}
+        } catch (e) {
+            console.error('Admin seed error:', e);
+        }
     }, 5000);
 });

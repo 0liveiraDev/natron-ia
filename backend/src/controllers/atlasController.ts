@@ -1,10 +1,9 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middlewares/auth';
 import { logActivity } from '../services/activityService';
 import { addXp } from '../services/xpService';
-
-const prisma = new PrismaClient();
+import { cache } from '../lib/cache'; // 🛡️ Escudo de Estabilidade
 
 // Atlas Local - Assistente sem necessidade de API externa
 export const chat = async (req: AuthRequest, res: Response) => {
@@ -43,9 +42,9 @@ export const chat = async (req: AuthRequest, res: Response) => {
                     },
                 });
                 await logActivity(userId, 'task_created', `Tarefa criada por Atlas: ${taskTitle}`);
-
-                // Award XP for task creation via Atlas (optional, but good for consistency)
-                // await addXp(userId, 'PRODUTIVIDADE', 2); 
+                cache.invalidate(`dashboard:overview:${userId}`);
+                cache.invalidate(`dashboard:weekly:${userId}`);
+                cache.invalidate(`dashboard:monthly:${userId}`);
 
                 actions.push({ type: 'task_created', data: task });
                 assistantMessage = `✅ Perfeito! Criei a tarefa "${taskTitle}" para você. Ela já está na sua lista de tarefas!`;
@@ -162,8 +161,10 @@ export const chat = async (req: AuthRequest, res: Response) => {
                     });
 
                     await logActivity(userId, 'transaction_added', `Gasto registrado por Atlas: R$ ${amount}`);
-
-                    // No XP for expenses - only investment income awards XP
+                    cache.invalidate(`dashboard:overview:${userId}`);
+                    cache.invalidate(`dashboard:weekly:${userId}`);
+                    cache.invalidate(`dashboard:finance-category:${userId}`);
+                    cache.invalidate(`dashboard:evolution:${userId}`);
 
                     actions.push({ type: 'expense_added', data: transaction });
                     assistantMessage = `💸 Registrado! Gasto de R$ ${amount.toFixed(2)} em ${categoryInput}. Fique de olho nas suas finanças!`;
@@ -204,9 +205,13 @@ export const chat = async (req: AuthRequest, res: Response) => {
                         },
                     });
                     
+                    cache.invalidate(`dashboard:overview:${userId}`);
+                    cache.invalidate(`dashboard:weekly:${userId}`);
+                    cache.invalidate(`dashboard:finance-category:${userId}`);
+                    cache.invalidate(`dashboard:evolution:${userId}`);
+
                     if (isInvestment) {
                         await logActivity(userId, 'transaction_added', `Investimento registrado por Atlas: R$ ${amount}`);
-                        // Awward XP para investimento automaticamente
                         await addXp(userId, 'FINANCEIRO', 5);
                         actions.push({ type: 'income_added', data: transaction });
                         assistantMessage = `📈 Excelente! Investimento de R$ ${amount.toFixed(2)} registrado com sucesso. Você ganhou +5 XP Financeiro!`;
@@ -215,7 +220,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
                         actions.push({ type: 'income_added', data: transaction });
                         assistantMessage = `💰 Ótimo! Entrada de R$ ${amount.toFixed(2)} registrada. Continue assim!`;
                     }
-                    
+
                     break;
                 }
             }

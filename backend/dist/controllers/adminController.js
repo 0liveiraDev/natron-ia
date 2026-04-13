@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toggleUserActive = exports.getAllUsers = exports.resetAllXp = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../lib/prisma");
 const resetAllXp = async (req, res) => {
     try {
         console.log('🔄 Emergency Reset: Zeroing XP for ALL users...');
-        const result = await prisma.user.updateMany({
+        const result = await prisma_1.prisma.user.updateMany({
             data: {
                 currentXp: 0,
                 level: 1,
@@ -33,7 +32,7 @@ const resetAllXp = async (req, res) => {
 exports.resetAllXp = resetAllXp;
 const getAllUsers = async (req, res) => {
     try {
-        const users = await prisma.user.findMany({
+        const users = await prisma_1.prisma.user.findMany({
             select: {
                 id: true,
                 name: true,
@@ -57,7 +56,7 @@ exports.getAllUsers = getAllUsers;
 const toggleUserActive = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id }
         });
         if (!user) {
@@ -66,7 +65,7 @@ const toggleUserActive = async (req, res) => {
         // Não permite que o admin desative a si próprio (prevenção contra acidentes)
         // (Opcional: req.userRole check não foi feito aqui porque idAdmin não tá no authMiddleware nativamente,
         // mas é ideal checar se não tá bloqueando ele mesmo depois).
-        const updatedUser = await prisma.user.update({
+        const updatedUser = await prisma_1.prisma.user.update({
             where: { id },
             data: {
                 isActive: !user.isActive

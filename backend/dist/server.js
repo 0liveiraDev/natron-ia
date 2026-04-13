@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -42,6 +9,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const routes_1 = __importDefault(require("./routes"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const prisma_1 = require("./lib/prisma");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 dotenv_1.default.config();
 // Build DATABASE_URL from individual env vars if not already set (Hostinger compatibility)
 if (!process.env.DATABASE_URL && process.env.DB_HOST) {
@@ -85,8 +54,15 @@ app.use('/uploads', express_1.default.static(UPLOADS_PATH));
 // Routes
 app.use('/api', routes_1.default);
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Natron IA API is running' });
+app.get('/health', async (req, res) => {
+    try {
+        // Testa a conexão com o banco de dados
+        await prisma_1.prisma.$queryRaw `SELECT 1`;
+        res.json({ status: 'ok', message: 'Natron IA API is running', db: 'connected' });
+    }
+    catch (err) {
+        res.status(503).json({ status: 'degraded', message: 'API running but DB unreachable' });
+    }
 });
 // Serve Frontend (React Build)
 const frontendPath = path_1.default.resolve(__dirname, '../../frontend/dist');
@@ -96,19 +72,42 @@ if (fs_1.default.existsSync(frontendPath)) {
         res.sendFile(path_1.default.join(frontendPath, 'index.html'));
     });
 }
-app.listen(PORT, () => {
+// ==========================================
+// GLOBAL ERROR HANDLERS — previne crashes silenciosos
+// ==========================================
+process.on('uncaughtException', (error) => {
+    console.error('❌ UNCAUGHT EXCEPTION:', error);
+    // Não encerra o processo — deixa o PM2/hosting reiniciar se necessário
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+// ==========================================
+// GRACEFUL SHUTDOWN — libera conexões MySQL corretamente
+// ==========================================
+const gracefulShutdown = async (signal) => {
+    console.log(`\n🛑 ${signal} received. Shutting down gracefully...`);
+    try {
+        await prisma_1.prisma.$disconnect();
+        console.log('✅ Prisma disconnected.');
+    }
+    catch (e) {
+        console.error('Error disconnecting Prisma:', e);
+    }
+    process.exit(0);
+};
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+const server = app.listen(PORT, () => {
     console.log(`🚀 Natron IA running on http://localhost:${PORT}`);
     // Background: ensure admin exists and has correct role (non-blocking)
     setTimeout(async () => {
         try {
-            const { PrismaClient } = await Promise.resolve().then(() => __importStar(require('@prisma/client')));
-            const bcrypt = await Promise.resolve().then(() => __importStar(require('bcryptjs')));
-            const prisma = new PrismaClient();
             const adminEmail = process.env.ADMIN_EMAIL || 'admin@natron.site';
-            const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
+            const exists = await prisma_1.prisma.user.findUnique({ where: { email: adminEmail } });
             if (!exists) {
-                const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
-                await prisma.user.create({
+                const hash = await bcryptjs_1.default.hash(process.env.ADMIN_PASSWORD || 'Zoinha1bruno', 10);
+                await prisma_1.prisma.user.create({
                     data: {
                         name: 'Natron IA Admin',
                         email: adminEmail,
@@ -120,14 +119,14 @@ app.listen(PORT, () => {
                 });
             }
             else if (exists.role !== 'Admin') {
-                // Fix: promote existing user to Admin
-                await prisma.user.update({
+                await prisma_1.prisma.user.update({
                     where: { email: adminEmail },
                     data: { role: 'Admin', rank: 'Mestre da Academia', level: 100 }
                 });
             }
-            await prisma.$disconnect();
         }
-        catch (e) { }
+        catch (e) {
+            console.error('Admin seed error:', e);
+        }
     }, 5000);
 });

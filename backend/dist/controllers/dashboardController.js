@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getFinancialEvolution = exports.getFinanceByCategory = exports.getMonthlyStats = exports.getWeeklyProgress = exports.getOverview = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../lib/prisma");
 // Get dashboard overview with all metrics
 const getOverview = async (req, res) => {
     try {
@@ -13,7 +12,7 @@ const getOverview = async (req, res) => {
         startOfWeek.setDate(now.getDate() - now.getDay());
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         // Get habits stats
-        const habits = await prisma.habit.findMany({
+        const habits = await prisma_1.prisma.habit.findMany({
             where: { userId },
             include: {
                 logs: {
@@ -28,13 +27,13 @@ const getOverview = async (req, res) => {
         const totalHabitLogs = habits.reduce((sum, h) => sum + h.logs.length, 0);
         const completedHabitLogs = habits.reduce((sum, h) => sum + h.logs.filter(log => log.completed).length, 0);
         // Get tasks stats
-        const tasks = await prisma.task.findMany({
+        const tasks = await prisma_1.prisma.task.findMany({
             where: { userId },
         });
         const tasksCompleted = tasks.filter(t => t.status === 'completed').length;
         const tasksPending = tasks.filter(t => t.status === 'pending').length;
         // Get finance stats
-        const transactions = await prisma.transaction.findMany({
+        const transactions = await prisma_1.prisma.transaction.findMany({
             where: {
                 userId,
                 date: { gte: startOfMonth },
@@ -47,7 +46,7 @@ const getOverview = async (req, res) => {
             .filter(t => t.type === 'expense' || t.type === 'saida')
             .reduce((sum, t) => sum + t.amount, 0);
         // Get user data with XP and attributes
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             select: {
                 currentXp: true,
@@ -122,7 +121,7 @@ const getWeeklyProgress = async (req, res) => {
             endOfDay.setDate(endOfDay.getDate() + 1);
             // console.log(`[WeeklyProgress] Check date: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
             // Get habits for this day
-            const habitLogs = await prisma.habitLog.findMany({
+            const habitLogs = await prisma_1.prisma.habitLog.findMany({
                 where: {
                     habit: { userId },
                     date: {
@@ -133,7 +132,7 @@ const getWeeklyProgress = async (req, res) => {
                 },
             });
             // Get tasks for this day
-            const tasks = await prisma.task.findMany({
+            const tasks = await prisma_1.prisma.task.findMany({
                 where: {
                     userId,
                     status: 'completed',
@@ -145,7 +144,7 @@ const getWeeklyProgress = async (req, res) => {
             });
             const dateStr = startOfDay.toISOString().split('T')[0]; // YYYY-MM-DD
             // Get expenses for this day - using DATE() to ignore time
-            const expenses = await prisma.$queryRaw `
+            const expenses = await prisma_1.prisma.$queryRaw `
                 SELECT id, amount, category, date
                 FROM \`Transaction\`
                 WHERE \`userId\` = ${userId}
@@ -163,7 +162,7 @@ const getWeeklyProgress = async (req, res) => {
             const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
             console.log(`  - Total: R$ ${totalExpenses}`);
             // Get income for this day
-            const income = await prisma.$queryRaw `
+            const income = await prisma_1.prisma.$queryRaw `
                 SELECT amount
                 FROM \`Transaction\`
                 WHERE \`userId\` = ${userId}
@@ -197,7 +196,7 @@ const getMonthlyStats = async (req, res) => {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         // Get habits by week
-        const habits = await prisma.habit.findMany({
+        const habits = await prisma_1.prisma.habit.findMany({
             where: { userId },
             include: {
                 logs: {
@@ -223,7 +222,7 @@ const getMonthlyStats = async (req, res) => {
             });
         });
         // Get tasks by status
-        const tasks = await prisma.task.findMany({
+        const tasks = await prisma_1.prisma.task.findMany({
             where: {
                 userId,
                 createdAt: { gte: startOfMonth },
@@ -260,7 +259,7 @@ const getFinanceByCategory = async (req, res) => {
         const userId = req.userId;
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const transactions = await prisma.transaction.findMany({
+        const transactions = await prisma_1.prisma.transaction.findMany({
             where: {
                 userId,
                 date: { gte: startOfMonth },
@@ -340,7 +339,7 @@ const getFinancialEvolution = async (req, res) => {
         for (let i = 5; i >= 0; i--) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-            const transactions = await prisma.transaction.findMany({
+            const transactions = await prisma_1.prisma.transaction.findMany({
                 where: {
                     userId,
                     date: {

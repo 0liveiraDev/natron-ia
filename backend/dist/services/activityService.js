@@ -1,11 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logActivity = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../lib/prisma");
 const logActivity = async (userId, type, description) => {
     try {
-        await prisma.activityLog.create({
+        await prisma_1.prisma.activityLog.create({
             data: {
                 userId,
                 type,

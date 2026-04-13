@@ -37,16 +37,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmReceipt = exports.uploadReceipt = exports.updateFinancialConfig = exports.getDashboard = exports.deleteTransaction = exports.updateTransaction = exports.getTransactions = exports.createTransaction = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const fs_1 = __importDefault(require("fs"));
 const activityService_1 = require("../services/activityService");
 const xpService_1 = require("../services/xpService");
-const prisma = new client_1.PrismaClient();
 const createTransaction = async (req, res) => {
     try {
         const { amount, type, category, description, date } = req.body;
         const userId = req.userId;
-        const transaction = await prisma.transaction.create({
+        const transaction = await prisma_1.prisma.transaction.create({
             data: {
                 amount: parseFloat(amount),
                 type,
@@ -82,7 +81,7 @@ exports.createTransaction = createTransaction;
 const getTransactions = async (req, res) => {
     try {
         const userId = req.userId;
-        const transactions = await prisma.transaction.findMany({
+        const transactions = await prisma_1.prisma.transaction.findMany({
             where: { userId },
             orderBy: { date: 'desc' },
         });
@@ -99,7 +98,7 @@ const updateTransaction = async (req, res) => {
         const { id } = req.params;
         const { amount, type, category, description, date } = req.body;
         const userId = req.userId;
-        const transaction = await prisma.transaction.updateMany({
+        const transaction = await prisma_1.prisma.transaction.updateMany({
             where: { id, userId },
             data: {
                 amount: amount ? parseFloat(amount) : undefined,
@@ -122,13 +121,13 @@ const deleteTransaction = async (req, res) => {
         const { id } = req.params;
         const userId = req.userId;
         // Get transaction before deleting to check for XP removal
-        const transaction = await prisma.transaction.findFirst({
+        const transaction = await prisma_1.prisma.transaction.findFirst({
             where: { id, userId }
         });
         if (!transaction) {
             return res.status(404).json({ error: 'Transação não encontrada' });
         }
-        await prisma.transaction.delete({
+        await prisma_1.prisma.transaction.delete({
             where: { id }
         });
         // Remove XP se a transação for deletada
@@ -157,8 +156,8 @@ const getDashboard = async (req, res) => {
     try {
         const userId = req.userId;
         const [transactions, config] = await Promise.all([
-            prisma.transaction.findMany({ where: { userId } }),
-            prisma.financialConfig.findUnique({ where: { userId } })
+            prisma_1.prisma.transaction.findMany({ where: { userId } }),
+            prisma_1.prisma.financialConfig.findUnique({ where: { userId } })
         ]);
         const initialReserve = config?.initialReserve || 0;
         const monthlyBudget = config?.monthlyBudget || 0;
@@ -219,7 +218,7 @@ const updateFinancialConfig = async (req, res) => {
     try {
         const userId = req.userId;
         const { monthlyBudget, initialReserve, categoryBudgets } = req.body;
-        const config = await prisma.financialConfig.upsert({
+        const config = await prisma_1.prisma.financialConfig.upsert({
             where: { userId },
             update: {
                 monthlyBudget: monthlyBudget ? parseFloat(monthlyBudget) : undefined,
@@ -336,7 +335,7 @@ const confirmReceipt = async (req, res) => {
         if (!amount) {
             return res.status(400).json({ error: 'Valor é obrigatório' });
         }
-        const transaction = await prisma.transaction.create({
+        const transaction = await prisma_1.prisma.transaction.create({
             data: {
                 amount: parseFloat(amount),
                 type: 'saida',

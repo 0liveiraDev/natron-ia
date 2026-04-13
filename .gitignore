@@ -5,3 +5,6 @@ package-lock.json
 *.map
 .DS_Store
 Thumbs.db
+*.db
+*.sqlite
+backend/logs/

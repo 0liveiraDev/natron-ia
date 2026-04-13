@@ -1,15 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getHabitStats = exports.toggleHabitLog = exports.deleteHabit = exports.updateHabit = exports.getHabits = exports.createHabit = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const activityService_1 = require("../services/activityService");
 const xpService_1 = require("../services/xpService");
-const prisma = new client_1.PrismaClient();
 const createHabit = async (req, res) => {
     try {
         const { title, description, attribute, xpValue } = req.body;
         const userId = req.userId;
-        const habit = await prisma.habit.create({
+        const habit = await prisma_1.prisma.habit.create({
             data: {
                 title,
                 description,
@@ -30,7 +29,7 @@ exports.createHabit = createHabit;
 const getHabits = async (req, res) => {
     try {
         const userId = req.userId;
-        const habits = await prisma.habit.findMany({
+        const habits = await prisma_1.prisma.habit.findMany({
             where: { userId },
             include: {
                 logs: {
@@ -53,7 +52,7 @@ const updateHabit = async (req, res) => {
         const { id } = req.params;
         const { title, description } = req.body;
         const userId = req.userId;
-        const habit = await prisma.habit.updateMany({
+        const habit = await prisma_1.prisma.habit.updateMany({
             where: { id, userId },
             data: { title, description },
         });
@@ -70,7 +69,7 @@ const deleteHabit = async (req, res) => {
         const { id } = req.params;
         const userId = req.userId;
         // 1. Get the habit to know which attribute and XP value it has
-        const habit = await prisma.habit.findFirst({
+        const habit = await prisma_1.prisma.habit.findFirst({
             where: { id, userId },
             include: {
                 logs: {
@@ -88,7 +87,7 @@ const deleteHabit = async (req, res) => {
             await (0, xpService_1.removeXp)(userId, habit.attribute, totalXpToRemove);
         }
         // 3. Delete the habit (Cascade will delete logs)
-        await prisma.habit.delete({
+        await prisma_1.prisma.habit.delete({
             where: { id },
         });
         await (0, activityService_1.logActivity)(userId, 'habit_deleted', `Hábito removido e XP subtraída: ${habit.title}`);
@@ -106,7 +105,7 @@ const toggleHabitLog = async (req, res) => {
         const { date } = req.body;
         const userId = req.userId;
         // Verificar se o hábito pertence ao usuário
-        const habit = await prisma.habit.findFirst({
+        const habit = await prisma_1.prisma.habit.findFirst({
             where: { id: habitId, userId },
         });
         if (!habit) {
@@ -115,7 +114,7 @@ const toggleHabitLog = async (req, res) => {
         const logDate = date ? new Date(date) : new Date();
         logDate.setHours(0, 0, 0, 0);
         // Verificar se já existe log para essa data
-        const existingLog = await prisma.habitLog.findUnique({
+        const existingLog = await prisma_1.prisma.habitLog.findUnique({
             where: {
                 habitId_date: {
                     habitId,
@@ -125,7 +124,7 @@ const toggleHabitLog = async (req, res) => {
         });
         if (existingLog) {
             // Remover log e XP
-            await prisma.habitLog.delete({
+            await prisma_1.prisma.habitLog.delete({
                 where: { id: existingLog.id },
             });
             // Remove XP when unmarking
@@ -136,7 +135,7 @@ const toggleHabitLog = async (req, res) => {
         }
         else {
             // Criar log
-            const log = await prisma.habitLog.create({
+            const log = await prisma_1.prisma.habitLog.create({
                 data: {
                     habitId,
                     date: logDate,
@@ -163,7 +162,7 @@ const getHabitStats = async (req, res) => {
         const { month, year } = req.query;
         const startDate = new Date(Number(year), Number(month) - 1, 1);
         const endDate = new Date(Number(year), Number(month), 0);
-        const habits = await prisma.habit.findMany({
+        const habits = await prisma_1.prisma.habit.findMany({
             where: { userId },
             include: {
                 logs: {

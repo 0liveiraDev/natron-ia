@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
+import { cache } from '../lib/cache'; // 🛡️ Escudo de Estabilidade
 
 export const resetAllXp = async (req: Request, res: Response) => {
     try {
@@ -22,6 +21,7 @@ export const resetAllXp = async (req: Request, res: Response) => {
         });
 
         console.log(`✅ Reset complete. Impacted ${result.count} users.`);
+        cache.invalidateAll(); // Limpa todo o cache pois dados de todos os usuários mudaram
 
         res.json({
             message: 'Todas as experiências foram zeradas com sucesso!',

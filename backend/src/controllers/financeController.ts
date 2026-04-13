@@ -1,12 +1,10 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middlewares/auth';
 import fs from 'fs';
 import path from 'path';
 import { logActivity } from '../services/activityService';
 import { addXp } from '../services/xpService';
-
-const prisma = new PrismaClient();
 
 export const createTransaction = async (req: AuthRequest, res: Response) => {
     try {

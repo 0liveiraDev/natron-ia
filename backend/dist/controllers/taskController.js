@@ -1,15 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTask = exports.updateTask = exports.getTasks = exports.createTask = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const activityService_1 = require("../services/activityService");
 const xpService_1 = require("../services/xpService");
-const prisma = new client_1.PrismaClient();
 const createTask = async (req, res) => {
     try {
         const { title, description, dueDate, attribute, xpValue } = req.body;
         const userId = req.userId;
-        const task = await prisma.task.create({
+        const task = await prisma_1.prisma.task.create({
             data: {
                 title,
                 description,
@@ -36,7 +35,7 @@ const getTasks = async (req, res) => {
         if (status) {
             where.status = status;
         }
-        const tasks = await prisma.task.findMany({
+        const tasks = await prisma_1.prisma.task.findMany({
             where,
             orderBy: { createdAt: 'desc' },
         });
@@ -54,10 +53,10 @@ const updateTask = async (req, res) => {
         const { title, description, status, dueDate, attribute, xpValue } = req.body;
         const userId = req.userId;
         // Check if task is being completed or uncompleted
-        const currentTask = await prisma.task.findUnique({ where: { id } });
+        const currentTask = await prisma_1.prisma.task.findUnique({ where: { id } });
         const isCompleting = status === 'completed' && currentTask?.status !== 'completed';
         const isUncompleting = status === 'pending' && currentTask?.status === 'completed';
-        const task = await prisma.task.updateMany({
+        const task = await prisma_1.prisma.task.updateMany({
             where: { id, userId },
             data: {
                 title,
@@ -96,7 +95,7 @@ const deleteTask = async (req, res) => {
         const userId = req.userId;
         console.log('🗑️ Deleting task:', { id, userId });
         // Get task before deleting to check if it was completed
-        const task = await prisma.task.findUnique({
+        const task = await prisma_1.prisma.task.findUnique({
             where: { id }
         });
         console.log('📋 Task found:', task);
@@ -110,7 +109,7 @@ const deleteTask = async (req, res) => {
             console.log('⬇️ Removing XP:', { attribute: task.attribute, xpValue: xpToRemove });
             await (0, xpService_1.removeXp)(userId, task.attribute, xpToRemove);
         }
-        await prisma.task.delete({
+        await prisma_1.prisma.task.delete({
             where: { id },
         });
         console.log('✅ Task deleted successfully');

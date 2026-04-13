@@ -1,9 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.removeXp = exports.addXp = exports.calculateRank = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const activityService_1 = require("./activityService");
-const prisma = new client_1.PrismaClient();
 // Rank thresholds - Naruto Ninja Hierarchy
 const ranks = [
     { name: 'Estudante da Academia', minXp: 0 },
@@ -56,7 +55,7 @@ const addXp = async (userId, category, amount) => {
     if (!dbField)
         return;
     // Fetch current user stats
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
     if (!user)
         return;
     // Calculate new total XP with conversion rate
@@ -72,7 +71,7 @@ const addXp = async (userId, category, amount) => {
     const { rank } = (0, exports.calculateRank)(newTotal);
     const newLevel = Math.floor(newTotal / 100) + 1;
     // Update User
-    await prisma.user.update({
+    await prisma_1.prisma.user.update({
         where: { id: userId },
         data: {
             [dbField]: newStat,
@@ -103,7 +102,7 @@ const removeXp = async (userId, category, amount) => {
     const dbField = schemaMap[targetCategory];
     if (!dbField)
         return;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
     if (!user)
         return;
     // Calculate XP to remove with conversion rate
@@ -118,7 +117,7 @@ const removeXp = async (userId, category, amount) => {
     const { rank } = (0, exports.calculateRank)(newTotal);
     const newLevel = Math.floor(newTotal / 100) + 1;
     // Update user
-    await prisma.user.update({
+    await prisma_1.prisma.user.update({
         where: { id: userId },
         data: {
             [dbField]: newStat,

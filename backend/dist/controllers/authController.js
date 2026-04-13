@@ -4,16 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetPassword = exports.forgotPassword = exports.uploadAvatar = exports.changePassword = exports.getMe = exports.login = exports.register = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../lib/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mailService_1 = require("../services/mailService");
-const prisma = new client_1.PrismaClient();
 const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         // Verificar se usuário já existe
-        const existingUser = await prisma.user.findUnique({
+        const existingUser = await prisma_1.prisma.user.findUnique({
             where: { email },
         });
         if (existingUser) {
@@ -22,7 +21,7 @@ const register = async (req, res) => {
         // Hash da senha (modo síncrono para velocidade)
         const hashedPassword = bcryptjs_1.default.hashSync(password, 10);
         // Criar usuário
-        const user = await prisma.user.create({
+        const user = await prisma_1.prisma.user.create({
             data: {
                 name,
                 email,
@@ -60,7 +59,7 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         // Buscar usuário
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { email },
         });
         if (!user) {
@@ -96,7 +95,7 @@ const login = async (req, res) => {
 exports.login = login;
 const getMe = async (req, res) => {
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: req.userId },
             select: {
                 id: true,
@@ -136,7 +135,7 @@ const changePassword = async (req, res) => {
         if (!oldPassword || !newPassword) {
             return res.status(400).json({ error: 'Senha atual e nova são obrigatórias' });
         }
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma_1.prisma.user.findUnique({ where: { id: userId } });
         if (!user)
             return res.status(404).json({ error: 'Usuário não encontrado' });
         const validPassword = bcryptjs_1.default.compareSync(oldPassword, user.password);
@@ -144,7 +143,7 @@ const changePassword = async (req, res) => {
             return res.status(401).json({ error: 'A senha atual está incorreta' });
         }
         const hashedPassword = bcryptjs_1.default.hashSync(newPassword, 10);
-        await prisma.user.update({
+        await prisma_1.prisma.user.update({
             where: { id: userId },
             data: { password: hashedPassword }
         });
@@ -165,7 +164,7 @@ const uploadAvatar = async (req, res) => {
         }
         const APP_URL = process.env.APP_URL || 'https://natron.site';
         const avatarUrl = `${APP_URL}/uploads/avatars/${req.file.filename}`;
-        const user = await prisma.user.update({
+        const user = await prisma_1.prisma.user.update({
             where: { id: userId },
             data: { avatarUrl },
         });
@@ -190,14 +189,14 @@ exports.uploadAvatar = uploadAvatar;
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (user) {
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             // Expira em 15 minutos
             const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
             // Limpa códigos anteriores se tiver
-            await prisma.passwordReset.deleteMany({ where: { email } });
-            await prisma.passwordReset.create({
+            await prisma_1.prisma.passwordReset.deleteMany({ where: { email } });
+            await prisma_1.prisma.passwordReset.create({
                 data: {
                     email,
                     code,
@@ -223,7 +222,7 @@ exports.forgotPassword = forgotPassword;
 const resetPassword = async (req, res) => {
     try {
         const { email, code, password } = req.body;
-        const reset = await prisma.passwordReset.findFirst({
+        const reset = await prisma_1.prisma.passwordReset.findFirst({
             where: {
                 email,
                 code,
@@ -234,16 +233,16 @@ const resetPassword = async (req, res) => {
         if (!reset) {
             return res.status(400).json({ error: 'Código inválido ou expirado. Solicite um novo.' });
         }
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(400).json({ error: 'Usuário não encontrado' });
         }
         const hashedPassword = bcryptjs_1.default.hashSync(password, 10);
-        await prisma.user.update({
+        await prisma_1.prisma.user.update({
             where: { email },
             data: { password: hashedPassword }
         });
-        await prisma.passwordReset.update({
+        await prisma_1.prisma.passwordReset.update({
             where: { id: reset.id },
             data: { used: true }
         });

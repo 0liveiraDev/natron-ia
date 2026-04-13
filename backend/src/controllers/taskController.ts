@@ -1,10 +1,8 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middlewares/auth';
 import { logActivity } from '../services/activityService';
 import { addXp, removeXp } from '../services/xpService';
-
-const prisma = new PrismaClient();
 
 export const createTask = async (req: AuthRequest, res: Response) => {
     try {

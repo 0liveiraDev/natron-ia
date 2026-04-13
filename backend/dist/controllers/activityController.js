@@ -1,13 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getActivities = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../lib/prisma");
 const getActivities = async (req, res) => {
     try {
         const userId = req.userId;
         const { limit = 50 } = req.query;
-        const activities = await prisma.activityLog.findMany({
+        const activities = await prisma_1.prisma.activityLog.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
             take: Number(limit),
