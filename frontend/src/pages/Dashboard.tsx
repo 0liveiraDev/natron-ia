@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
     const weeklyIncome = weeklyProgress.reduce((sum: number, day: any) => sum + (day.income || 0), 0);
 
     return (
-        <div className="space-y-6 p-6 overflow-y-auto custom-scrollbar h-[calc(100vh-2rem)]">
+        <div className="space-y-6 pb-24 md:pb-10">
             {/* Top Row - Overview & Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -123,17 +123,17 @@ const Dashboard: React.FC = () => {
 
                     <div className="flex flex-col items-center justify-center h-full mt-8">
                         {/* Hexagon Shape / Level Indicator */}
-                        <div className="relative w-80 h-80 flex items-center justify-center">
+                        <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center">
                             {/* Outer Labels - Positioned outside hexagon at vertices */}
-                            <span className="absolute top-0 left-1/2 -translate-x-1/2 translate-y-2 text-xs text-[#ff3b30] uppercase tracking-wider font-semibold">Físico</span>
-                            <span className="absolute top-1/4 right-0 translate-x-6 -translate-y-2 text-xs text-[#ffd60a] uppercase tracking-wider font-semibold">Disciplina</span>
-                            <span className="absolute bottom-1/4 right-0 translate-x-2 translate-y-1 text-xs text-[#b800ff] uppercase tracking-wider font-semibold">Mental</span>
-                            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 -translate-y-2 text-xs text-[#ff9500] uppercase tracking-wider font-semibold">Intelecto</span>
-                            <span className="absolute bottom-1/4 left-0 -translate-x-10 translate-y-2 text-xs text-[#0a84ff] uppercase tracking-wider font-semibold">Produtividade</span>
-                            <span className="absolute top-1/4 left-0 -translate-x-6 -translate-y-2 text-xs text-[#00ff88] uppercase tracking-wider font-semibold">Financeiro</span>
+                            <span className="absolute top-0 left-1/2 -translate-x-1/2 translate-y-1 text-[9px] sm:text-xs text-[#ff3b30] uppercase tracking-wider font-semibold">Físico</span>
+                            <span className="absolute top-1/4 right-0 translate-x-3 sm:translate-x-6 -translate-y-2 text-[9px] sm:text-xs text-[#ffd60a] uppercase tracking-wider font-semibold">Disciplina</span>
+                            <span className="absolute bottom-1/4 right-0 translate-x-1 sm:translate-x-2 translate-y-1 text-[9px] sm:text-xs text-[#b800ff] uppercase tracking-wider font-semibold">Mental</span>
+                            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 -translate-y-1 text-[9px] sm:text-xs text-[#ff9500] uppercase tracking-wider font-semibold">Intelecto</span>
+                            <span className="absolute bottom-1/4 left-0 -translate-x-7 sm:-translate-x-10 translate-y-2 text-[9px] sm:text-xs text-[#0a84ff] uppercase tracking-wider font-semibold">Produtividade</span>
+                            <span className="absolute top-1/4 left-0 -translate-x-5 sm:-translate-x-6 -translate-y-2 text-[9px] sm:text-xs text-[#00ff88] uppercase tracking-wider font-semibold">Financeiro</span>
 
                             {/* Hexagon Container */}
-                            <div className="relative w-64 h-64 flex items-center justify-center">
+                            <div className="relative w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
                                 {/* Simple SVG Hexagon Representation - Background Grid */}
                                 <svg viewBox="0 0 100 100" className="w-full h-full absolute opacity-20">
                                     <polygon points="50 5, 95 27, 95 72, 50 95, 5 72, 5 27" fill="none" stroke="#fff" strokeWidth="1" />
@@ -226,7 +226,7 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         {/* Bottom Stats */}
-                        <div className="grid grid-cols-3 gap-6 sm:gap-12 mt-6 w-full px-4 sm:px-12">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-12 mt-6 w-full px-2 sm:px-12">
                             <div className="text-center">
                                 <div className="text-[10px] text-[#ff3b30] uppercase mb-1">Físico</div>
                                 <div className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{overview?.user?.xpPhysical || 0}</div>
@@ -256,9 +256,9 @@ const Dashboard: React.FC = () => {
                 </motion.div>
 
                 {/* Right Side - Charts Grid */}
-                <div className="grid grid-rows-1 xl:grid-rows-2 gap-6">
+                <div className="grid gap-6">
                     {/* Top Right - Progress & Goals */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                         {/* Weekly Habits Chart */}
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
@@ -345,7 +345,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Bottom Row - Finance */}
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {/* Gastos por Categoria - Donut */}
                 <motion.div
