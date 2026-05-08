@@ -18,7 +18,7 @@ const callOllama = async (prompt, systemPrompt) => {
             prompt: prompt,
             system: systemPrompt,
             stream: false,
-        }, { timeout: 30000 });
+        }, { timeout: 60000 });
         return response.data.response;
     }
     catch (error) {

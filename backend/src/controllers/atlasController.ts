@@ -16,7 +16,7 @@ const callOllama = async (prompt: string, systemPrompt: string) => {
             prompt: prompt,
             system: systemPrompt,
             stream: false,
-        }, { timeout: 30000 });
+        }, { timeout: 60000 });
         return response.data.response;
     } catch (error) {
         console.error('Ollama API error:', error);
