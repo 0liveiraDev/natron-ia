@@ -4,6 +4,25 @@ import { AuthRequest } from '../middlewares/auth';
 import { logActivity } from '../services/activityService';
 import { addXp } from '../services/xpService';
 import { cache } from '../lib/cache'; // 🛡️ Escudo de Estabilidade
+import axios from 'axios';
+
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const MODEL_NAME = process.env.MODEL_NAME || 'llama3';
+
+const callOllama = async (prompt: string, systemPrompt: string) => {
+    try {
+        const response = await axios.post(`${OLLAMA_URL}/api/generate`, {
+            model: MODEL_NAME,
+            prompt: prompt,
+            system: systemPrompt,
+            stream: false,
+        }, { timeout: 30000 });
+        return response.data.response;
+    } catch (error) {
+        console.error('Ollama API error:', error);
+        return null;
+    }
+};
 
 // Atlas Local - Assistente sem necessidade de API externa
 export const chat = async (req: AuthRequest, res: Response) => {
@@ -252,26 +271,52 @@ export const chat = async (req: AuthRequest, res: Response) => {
                 `Continue assim! Você está indo muito bem! 🚀`;
         }
 
-        // 5. Saudações e conversas gerais
+        // 5. Inteligência Artificial (O "Cérebro" do Natron)
         if (!assistantMessage) {
-            if (userMessage.includes('olá') || userMessage.includes('oi') || userMessage.includes('hey')) {
-                assistantMessage = `Olá, ${user?.name}! 👋 Como posso ajudar você hoje? Posso criar tarefas, registrar gastos ou mostrar seu progresso!`;
-            } else if (userMessage.includes('obrigad')) {
-                assistantMessage = `Por nada, ${user?.name}! Estou aqui sempre que precisar! 😊`;
-            } else if (userMessage.includes('ajuda') || userMessage.includes('o que você faz')) {
-                assistantMessage = `🤖 Eu sou o Atlas, seu assistente pessoal!\n\n` +
-                    `Posso ajudar você com:\n` +
-                    `✅ Criar tarefas: "Crie uma tarefa para estudar React"\n` +
-                    `💸 Registrar gastos: "Registre gasto de 50 reais em alimentação"\n` +
-                    `💰 Registrar entradas: "Registre entrada de 1000 reais"\n` +
-                    `📊 Ver progresso: "Como está meu progresso?"\n\n` +
-                    `Experimente me pedir algo!`;
-            } else {
-                assistantMessage = `Entendi! Posso ajudar você a:\n` +
-                    `• Criar tarefas\n` +
-                    `• Registrar gastos e entradas\n` +
-                    `• Ver seu progresso\n\n` +
-                    `O que você gostaria de fazer?`;
+            try {
+                // Coletar contexto detalhado para a IA
+                const [habits, tasks, transactions] = await Promise.all([
+                    prisma.habit.findMany({ where: { userId }, include: { logs: true } }),
+                    prisma.task.findMany({ where: { userId } }),
+                    prisma.transaction.findMany({ where: { userId } }),
+                ]);
+
+                const pendingTasks = tasks.filter(t => t.status === 'pending').map(t => t.title).join(', ');
+                const totalIncome = transactions.filter(t => t.type === 'entrada').reduce((sum, t) => sum + t.amount, 0);
+                const totalExpense = transactions.filter(t => t.type === 'saida').reduce((sum, t) => sum + t.amount, 0);
+                const balance = totalIncome - totalExpense;
+
+                const systemPrompt = `Você é a Friday, a assistente inteligente e cérebro do sistema Natron IA.
+O usuário se chama ${user?.name}. Seu objetivo é ser uma mentora de produtividade e finanças.
+
+Personalidade:
+- Você é uma pessoa centrada, calma e focada.
+- Você demonstra empatia, entendendo os desafios do usuário, mas sempre incentivando o progresso.
+- Suas respostas são equilibradas, sensatas e acolhedoras.
+
+Contexto atual do usuário:
+- Nome: ${user?.name}
+- Tarefas Pendentes: ${pendingTasks || 'Nenhuma tarefa pendente'}
+- Saldo Atual: R$ ${balance.toFixed(2)} (Entradas: R$ ${totalIncome.toFixed(2)}, Saídas: R$ ${totalExpense.toFixed(2)})
+- Hábitos: ${habits.length} hábitos sendo monitorados.
+
+Diretrizes:
+1. Use uma linguagem natural brasileira, centrada e empática.
+2. Se o usuário quiser criar uma tarefa ou registro e o sistema de comandos rápidos falhou, você deve orientá-lo com calma.
+3. Use o contexto acima para dar conselhos sensatos. Se ele estiver gastando muito, ofereça um conselho empático mas realista sobre economia.
+4. Responda de forma concisa mas útil.`;
+
+                const aiResponse = await callOllama(message, systemPrompt);
+                
+                if (aiResponse) {
+                    assistantMessage = aiResponse;
+                } else {
+                    // Fallback caso a IA falhe
+                    assistantMessage = `Olá ${user?.name}! Aqui é a Friday. Estou com uma pequena instabilidade momentânea no meu sistema, mas continuo aqui com você. Posso ajudar com comandos básicos como "Criar tarefa" ou "Registrar gasto" por enquanto?`;
+                }
+            } catch (aiError) {
+                console.error('Erro ao chamar cérebro IA:', aiError);
+                assistantMessage = `Oi, ${user?.name}. Aqui é a Friday. Tive um probleminha técnico, mas estou focada em resolver. Pode repetir o que você disse?`;
             }
         }
 
