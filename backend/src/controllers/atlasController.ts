@@ -194,3 +194,22 @@ Diretrizes:
         res.status(500).json({ error: 'Erro ao conversar com Friday' });
     }
 };
+
+export const getHistory = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId!;
+        const history = await prisma.chatMessage.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'asc' },
+            take: 50
+        });
+
+        res.json(history.map(msg => ({
+            role: msg.role,
+            content: msg.content
+        })));
+    } catch (error) {
+        console.error('Atlas history error:', error);
+        res.status(500).json({ error: 'Erro ao buscar histórico do chat' });
+    }
+};

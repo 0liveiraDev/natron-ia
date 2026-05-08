@@ -33,6 +33,21 @@ const Atlas: React.FC = () => {
     };
 
     useEffect(() => {
+        const fetchHistory = async () => {
+            try {
+                const response = await api.get('/atlas/history');
+                if (response.data && response.data.length > 0) {
+                    setMessages(response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching chat history:', error);
+            }
+        };
+
+        fetchHistory();
+    }, []);
+
+    useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
