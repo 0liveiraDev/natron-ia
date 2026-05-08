@@ -46,6 +46,8 @@ services:
       MYSQL_PASSWORD: NatronPassword2026
     volumes:
       - ./data/mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
     networks:
       - natron-net
     healthcheck:
@@ -95,7 +97,10 @@ networks:
   console.log('\n⏳ Baixando modelo Llama 3 (Isso pode levar alguns minutos dependendo da conexão do VPS)...');
   await run('docker exec natron-ollama ollama pull llama3', 'Baixando modelo Llama 3');
 
-  // 5. Verificar status
+  // 5. Liberar porta 3307 no firewall para acesso do site Hostinger
+  await run('ufw allow 3307/tcp', 'Liberando porta 3307 no firewall');
+
+  // 6. Verificar status
   await run('cd /opt/natron-ia && docker compose ps', 'Status dos containers Natron');
 
   console.log('\n\n🎉 NATRON IA PREPARADO NO VPS!');
