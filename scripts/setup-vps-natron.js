@@ -29,24 +29,30 @@ async function main() {
   console.log('✅ Conectado!');
 
   // 1. Criar estrutura de pastas separada
-  await run('mkdir -p /opt/natron-ia/data/postgres /opt/natron-ia/data/ollama', 'Criando pastas do Natron');
+  await run('mkdir -p /opt/natron-ia/data/mysql /opt/natron-ia/data/ollama', 'Criando pastas do Natron');
 
   // 2. Criar docker-compose.yml dedicado ao Natron
   const compose = `version: '3.8'
 
 services:
   db-natron:
-    image: postgres:15-alpine
+    image: mysql:8.0
     container_name: natron-db
     restart: always
     environment:
-      POSTGRES_USER: natron_user
-      POSTGRES_PASSWORD: NatronPassword2026
-      POSTGRES_DB: natron_db
+      MYSQL_ROOT_PASSWORD: NatronRootPassword2026
+      MYSQL_DATABASE: natron_db
+      MYSQL_USER: natron_user
+      MYSQL_PASSWORD: NatronPassword2026
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/mysql:/var/lib/mysql
     networks:
       - natron-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ollama:
     image: ollama/ollama:latest
@@ -69,7 +75,7 @@ services:
     restart: always
     working_dir: /app
     environment:
-      DATABASE_URL: "postgresql://natron_user:NatronPassword2026@db-natron:5432/natron_db?schema=public"
+      DATABASE_URL: "mysql://natron_user:NatronPassword2026@db-natron:3306/natron_db"
       OLLAMA_URL: "http://ollama:11434"
       NODE_ENV: production
     networks:
