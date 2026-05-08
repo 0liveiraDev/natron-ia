@@ -24,6 +24,7 @@ model User {
   tasks        Task[]
   transactions Transaction[]
   activities   ActivityLog[]
+  messages     ChatMessage[]
   financialConfig FinancialConfig?
 
   // Gamification Stats
@@ -136,4 +137,15 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  role      String   // user, assistant
+  content   String   @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
