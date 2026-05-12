@@ -59,6 +59,7 @@ router.get('/activities', authMiddleware, activityController.getActivities);
 // Atlas routes
 router.post('/atlas/chat', authMiddleware, atlasController.chat);
 router.get('/atlas/history', authMiddleware, atlasController.getHistory);
+router.post('/atlas/upload-pdf', authMiddleware, upload.single('file'), atlasController.uploadPdf);
 
 // Dashboard routes
 router.get('/dashboard/overview', authMiddleware, dashboardController.getOverview);

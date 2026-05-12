@@ -8,6 +8,7 @@ import axios from 'axios';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const MODEL_NAME = process.env.MODEL_NAME || 'llama3';
+const pdf = require('pdf-parse');
 
 const callOllama = async (messages: any[]) => {
     try {
@@ -178,5 +179,67 @@ export const getHistory = async (req: AuthRequest, res: Response) => {
         res.json(history.map(msg => ({ role: msg.role, content: msg.content })));
     } catch (error) {
         res.status(500).json({ error: 'Erro ao buscar histórico' });
+    }
+};
+
+export const uploadPdf = async (req: AuthRequest, res: Response) => {
+    try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+        const dataBuffer = file.buffer;
+        const data = await pdf(dataBuffer);
+        const text = data.text;
+
+        const userId = req.userId!;
+        
+        // 1. Salvar o conteúdo como contexto do sistema
+        await prisma.chatMessage.create({
+            data: {
+                role: 'system',
+                content: `O usuário enviou o arquivo "${file.originalname}". Conteúdo extraído:\n\n${text.substring(0, 7000)}`,
+                userId
+            }
+        });
+
+        // 2. Chamar a Friday para ela se apresentar e pedir confirmação
+        const [user, history] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+            prisma.chatMessage.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                take: 5
+            })
+        ]);
+
+        const systemPrompt = `Você é a Friday. O usuário acabou de enviar um documento PDF chamado "${file.originalname}".
+Sua tarefa é:
+1. Analisar brevemente o conteúdo que foi enviado no contexto do sistema.
+2. Resumir para o usuário os pontos principais (valores, datas, nomes, ou o assunto principal).
+3. Perguntar se as informações estão corretas ou se ele deseja editar/corrigir algo antes de prosseguir.
+Seja educada, clara e objetiva.`;
+
+        const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
+
+        const aiResponse = await callOllama([
+            { role: 'system', content: systemPrompt },
+            ...chatHistory
+        ]);
+
+        const finalMessage = aiResponse || `Recebi o arquivo "${file.originalname}". Pelo que li, parece ser [Erro ao processar resumo]. As informações estão corretas?`;
+
+        // 3. Salvar a resposta da Friday
+        await prisma.chatMessage.create({
+            data: {
+                role: 'assistant',
+                content: finalMessage,
+                userId
+            }
+        });
+
+        res.json({ message: finalMessage });
+    } catch (error) {
+        console.error('PDF upload error:', error);
+        res.status(500).json({ error: 'Erro ao processar o PDF' });
     }
 };

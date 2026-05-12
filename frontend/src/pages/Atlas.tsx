@@ -87,75 +87,27 @@ const Atlas: React.FC = () => {
 
         try {
             const formData = new FormData();
-            formData.append('receipt', file);
+            formData.append('file', file);
 
-            const response = await api.post('/finance/upload-receipt', formData, {
+            const response = await api.post('/atlas/upload-pdf', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            const { extracted, message: ocrMessage } = response.data;
-
-            let confirmationMessage = `✅ ${ocrMessage}\n\n`;
-
-            // Se não detectou valor, pedir entrada manual
-            if (!extracted.amount) {
-                confirmationMessage = `⚠️ Nota fiscal processada, mas não consegui identificar o valor automaticamente.\n\n`;
-                confirmationMessage += `Por favor, informe os dados manualmente:\n\n`;
-                confirmationMessage += `Digite no formato:\n`;
-                confirmationMessage += `valor: [valor em reais]\n`;
-                confirmationMessage += `Exemplo: "valor: 19.13"\n\n`;
-
-                if (extracted.establishment) {
-                    confirmationMessage += `🏪 Estabelecimento detectado: ${extracted.establishment}\n`;
-                }
-                if (extracted.categoryType) {
-                    const tipoLabel = extracted.categoryType === 'essencial' ? 'Gasto Essencial' : 'Gasto Variável';
-                    confirmationMessage += `🏷️ Tipo: ${tipoLabel}\n`;
-                }
-                if (extracted.category) {
-                    confirmationMessage += `📂 Categoria: ${extracted.category}\n`;
-                }
-                if (extracted.subcategory) {
-                    confirmationMessage += `📌 Subcategoria: ${extracted.subcategory}\n`;
-                }
-            } else {
-                // Valor detectado - mostrar todos os dados
-                confirmationMessage += `💰 Valor: R$ ${extracted.amount.toFixed(2)}\n`;
-                if (extracted.establishment) {
-                    confirmationMessage += `🏪 Estabelecimento: ${extracted.establishment}\n`;
-                }
-                if (extracted.date) {
-                    confirmationMessage += `📅 Data: ${new Date(extracted.date).toLocaleDateString('pt-BR')}\n`;
-                }
-                if (extracted.categoryType) {
-                    const tipoLabel = extracted.categoryType === 'essencial' ? 'Gasto Essencial' : 'Gasto Variável';
-                    confirmationMessage += `🏷️ Tipo: ${tipoLabel}\n`;
-                }
-                if (extracted.category) {
-                    confirmationMessage += `📂 Categoria: ${extracted.category}\n`;
-                }
-                if (extracted.subcategory) {
-                    confirmationMessage += `📌 Subcategoria: ${extracted.subcategory}\n`;
-                }
-                confirmationMessage += `\n✅ Digite "sim" ou "confirmar" para registrar este gasto.`;
-            }
+            const { message: aiResponse } = response.data;
 
             setMessages((prev) => [
                 ...prev,
-                { role: 'assistant', content: confirmationMessage },
+                { role: 'assistant', content: aiResponse },
             ]);
-
-            // Salvar dados para confirmação posterior
-            setPendingReceipt(extracted);
 
         } catch (error) {
             console.error('Upload error:', error);
-            showToast('Erro ao processar nota fiscal', 'error');
+            showToast('Erro ao processar PDF', 'error');
             setMessages((prev) => [
                 ...prev,
-                { role: 'assistant', content: 'Desculpe, ocorreu um erro ao processar a nota fiscal. Por favor, tente novamente.' },
+                { role: 'assistant', content: 'Desculpe, ocorreu um erro ao analisar o PDF. Por favor, tente novamente.' },
             ]);
         } finally {
             setUploadingFile(false);
