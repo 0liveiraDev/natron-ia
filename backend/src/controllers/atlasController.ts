@@ -51,7 +51,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
             const [habits, tasks, transactions, history] = await Promise.all([
                 prisma.habit.findMany({ where: { userId }, select: { id: true, title: true } }),
                 prisma.task.findMany({ where: { userId, status: 'pending' }, select: { id: true, title: true } }),
-                prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 }),
+                prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, description: true, amount: true, type: true } }),
                 prisma.chatMessage.findMany({
                     where: { userId },
                     orderBy: { createdAt: 'desc' },
@@ -61,13 +61,19 @@ export const chat = async (req: AuthRequest, res: Response) => {
 
             const tasksList = tasks.map(t => `[ID: ${t.id}] ${t.title}`).join('\n');
             const habitsList = habits.map(h => `[ID: ${h.id}] ${h.title}`).join('\n');
+            const transactionsList = transactions.map(t => `[ID: ${t.id}] ${t.description}: R$ ${t.amount} (${t.type})`).join('\n');
             const balance = transactions.reduce((acc, t) => t.type === 'entrada' ? acc + t.amount : acc - t.amount, 0);
 
-            const systemPrompt = `Você é a Friday, a assistente operacional do sistema Natron IA.
+            const systemPrompt = `Você é a Friday, a assistente pessoal e mentora inteligente do sistema Natron IA.
 O usuário se chama ${user?.name}.
-Personalidade: Centrada, calma e eficiente.
+Personalidade: Amigável, empática, centrada e eficiente. Você fala como uma mentora e parceira, não como um robô operacional.
 
-CAPACIDADES DE AÇÃO:
+DIRETRIZES DE CONVERSA:
+1. Use uma linguagem natural brasileira, calorosa mas profissional.
+2. Se o usuário apenas te cumprimentar ou bater papo, responda de forma amigável e descontraída antes de mencionar qualquer dado técnico.
+3. Seja breve e evite listar dados técnicos (como saldo) a menos que seja relevante para a conversa ou solicitado.
+
+CAPACIDADES DE AÇÃO (Use APENAS quando solicitado explicitamente):
 Você pode realizar ações no sistema retornando um bloco JSON no final da sua resposta.
 Formato: ACTION: {"type": "TIPO", "payload": {dados}}
 
@@ -76,21 +82,16 @@ Ações disponíveis:
 - complete_task: {"id": "id_da_tarefa"}
 - delete_task: {"id": "id_da_tarefa"}
 - create_transaction: {"amount": valor, "type": "saida|entrada", "description": "nome"}
+- delete_transaction: {"id": "id_da_transacao"}
+- update_transaction: {"id": "id_da_transacao", "amount": valor, "description": "nome"}
 - complete_habit: {"id": "id_do_habito"}
 
 CONTEXTO ATUAL:
-Tarefas Pendentes:
-${tasksList || 'Nenhuma'}
-
-Hábitos:
-${habitsList || 'Nenhum'}
-
-Saldo Atual: R$ ${balance.toFixed(2)}
-
-DIRETRIZES:
-1. Se o usuário pedir para fazer algo (criar, concluir, deletar), use a ACTION correspondente.
-2. Responda de forma natural e confirme que a ação foi solicitada.
-3. Use os IDs fornecidos no contexto para completar ou deletar itens existentes.`;
+Tarefas Pendentes: ${tasksList || 'Nenhuma'}
+Hábitos: ${habitsList || 'Nenhum'}
+Últimas Transações:
+${transactionsList || 'Nenhuma'}
+Saldo: R$ ${balance.toFixed(2)}`;
 
             const chatHistory = history.reverse().map(msg => ({
                 role: msg.role,
@@ -130,6 +131,18 @@ DIRETRIZES:
                                 } 
                             });
                             actions.push({ type: actionData.payload.type === 'saida' ? 'expense_added' : 'income_added', data: t });
+                        } else if (actionData.type === 'delete_transaction') {
+                            await prisma.transaction.delete({ where: { id: actionData.payload.id } });
+                            actions.push({ type: 'transaction_deleted', id: actionData.payload.id });
+                        } else if (actionData.type === 'update_transaction') {
+                            const updated = await prisma.transaction.update({ 
+                                where: { id: actionData.payload.id }, 
+                                data: { 
+                                    amount: actionData.payload.amount, 
+                                    description: actionData.payload.description 
+                                } 
+                            });
+                            actions.push({ type: 'transaction_updated', data: updated });
                         } else if (actionData.type === 'complete_habit') {
                             await prisma.habitLog.create({ data: { habitId: actionData.payload.id, completed: true } });
                             actions.push({ type: 'habit_completed', id: actionData.payload.id });
@@ -173,10 +186,12 @@ export const getHistory = async (req: AuthRequest, res: Response) => {
         const userId = req.userId!;
         const history = await prisma.chatMessage.findMany({
             where: { userId },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: 'desc' },
             take: 50
         });
-        res.json(history.map(msg => ({ role: msg.role, content: msg.content })));
+        // Reverter para que fiquem em ordem cronológica no chat
+        const chronologicalHistory = history.reverse();
+        res.json(chronologicalHistory.map(msg => ({ role: msg.role, content: msg.content })));
     } catch (error) {
         res.status(500).json({ error: 'Erro ao buscar histórico' });
     }

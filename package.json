@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "postinstall": "cd backend && npm install"
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "postinstall": "cd backend && npm install && npx prisma generate"
   },
   "dependencies": {
     "dotenv": "^16.3.1",

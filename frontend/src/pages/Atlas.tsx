@@ -32,18 +32,18 @@ const Atlas: React.FC = () => {
         }, 100);
     };
 
-    useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await api.get('/atlas/history');
-                if (response.data && response.data.length > 0) {
-                    setMessages(response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching chat history:', error);
+    const fetchHistory = async () => {
+        try {
+            const response = await api.get('/atlas/history');
+            if (response.data && response.data.length > 0) {
+                setMessages(response.data);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching chat history:', error);
+        }
+    };
 
+    useEffect(() => {
         fetchHistory();
     }, []);
 
@@ -217,9 +217,10 @@ const Atlas: React.FC = () => {
                     }
                 });
                 
-                // Sempre recarrega se teve mutações ligadas a finanças/xp/level
-                if (hasXpChanges || actions.some((a: any) => a.type.includes('task') || a.type.includes('income'))) {
+                // Sempre recarrega dados do usuário se teve mutações
+                if (hasXpChanges || (actions && actions.length > 0)) {
                     await refreshUser();
+                    await fetchHistory(); // Recarrega o chat para garantir que nada sumiu
                 }
             }
         } catch (error) {

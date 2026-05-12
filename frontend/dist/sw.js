@@ -1,4 +1,3 @@
-// Basic Service Worker for PWA compliance and offline support
 const CACHE_NAME = 'natron-ia-v3';
 const ASSETS_TO_CACHE = [
     '/',
