@@ -70,6 +70,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://natron_user:NatronPassword2026@db-natron:5432/natron_db?schema=public"
       OLLAMA_URL: "http://ollama:11434"
+      MODEL_NAME: "llama3.2"
       JWT_SECRET: "seu_jwt_secret_super_secreto_aqui"
       PORT: 3001
       NODE_ENV: production
