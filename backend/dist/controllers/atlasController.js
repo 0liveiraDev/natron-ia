@@ -3,9 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chat = void 0;
+exports.getHistory = exports.chat = void 0;
 const prisma_1 = require("../lib/prisma");
-const activityService_1 = require("../services/activityService");
 const cache_1 = require("../lib/cache"); // 🛡️ Escudo de Estabilidade
 const axios_1 = __importDefault(require("axios"));
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -24,7 +23,7 @@ const callOllama = async (messages) => {
         return null;
     }
 };
-// Atlas Local - Assistente sem necessidade de API externa
+// Atlas Local - Assistente inteligente com capacidades de ação
 const chat = async (req, res) => {
     try {
         const { message } = req.body;
@@ -36,139 +35,126 @@ const chat = async (req, res) => {
         });
         // 1. Salvar mensagem do usuário no banco de dados (Memória)
         await prisma_1.prisma.chatMessage.create({
-            data: {
-                role: 'user',
-                content: message,
-                userId
-            }
+            data: { role: 'user', content: message, userId }
         });
         const userMessage = message.toLowerCase();
-        const actions = [];
         let assistantMessage = '';
-        // Padrões de comandos (Comandos Rápidos mantidos para agilidade)
-        // 1. Criar Tarefa
-        const taskPatterns = [
-            /criar?\s+(?:uma\s+)?tarefa\s+(?:para\s+)?(.+)/i,
-            /adicionar?\s+tarefa\s+(.+)/i,
-            /nova\s+tarefa\s+(.+)/i,
-            /tarefa:\s*(.+)/i,
-        ];
-        for (const pattern of taskPatterns) {
-            const match = message.match(pattern);
-            if (match) {
-                const taskTitle = match[1].trim();
-                const task = await prisma_1.prisma.task.create({
-                    data: {
-                        title: taskTitle,
-                        userId,
-                    },
-                });
-                await (0, activityService_1.logActivity)(userId, 'task_created', `Tarefa criada por Atlas: ${taskTitle}`);
-                cache_1.cache.invalidate(`dashboard:overview:${userId}`);
-                assistantMessage = `✅ Perfeito! Criei a tarefa "${taskTitle}" para você. Ela já está na sua lista!`;
-                break;
-            }
-        }
-        // 2. Registrar Gasto
-        if (!assistantMessage) {
-            const expensePatterns = [
-                /(?:registr(?:ar|e|o)|adicionar|inserir|lançar|novo)\s+(?:de\s+)?(?:um\s+)?gasto\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s+(?:reais?\s+)?(?:em|de|para|com|no|na)?\s*(.+)?/i,
-                /gast(?:ei|ar|o)\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s+(?:reais?\s+)?(?:em|com|de|no|na)?\s*(.+)?/i,
-            ];
-            for (const pattern of expensePatterns) {
-                const match = message.match(pattern);
-                if (match) {
-                    const amount = parseFloat(match[1].replace(',', '.'));
-                    const categoryInput = match[2]?.toLowerCase().trim() || 'outros';
-                    const transaction = await prisma_1.prisma.transaction.create({
-                        data: {
-                            amount,
-                            type: 'saida',
-                            category: 'outros',
-                            description: categoryInput,
-                            userId,
-                        },
-                    });
-                    await (0, activityService_1.logActivity)(userId, 'transaction_added', `Gasto registrado por Atlas: R$ ${amount}`);
-                    cache_1.cache.invalidate(`dashboard:overview:${userId}`);
-                    assistantMessage = `💸 Registrado! Gasto de R$ ${amount.toFixed(2)} em ${categoryInput}.`;
-                    break;
-                }
-            }
-        }
-        // 4. Consultar Progresso
-        if (!assistantMessage && (userMessage.includes('progresso') || userMessage.includes('como estou'))) {
-            const [tasks, transactions] = await Promise.all([
-                prisma_1.prisma.task.findMany({ where: { userId } }),
-                prisma_1.prisma.transaction.findMany({ where: { userId } }),
+        const actions = [];
+        // --- MÓDULO DE INTELIGÊNCIA COM AÇÕES ---
+        try {
+            // Coletar contexto detalhado com IDs para a IA poder manipular
+            const [habits, tasks, transactions, history] = await Promise.all([
+                prisma_1.prisma.habit.findMany({ where: { userId }, select: { id: true, title: true } }),
+                prisma_1.prisma.task.findMany({ where: { userId, status: 'pending' }, select: { id: true, title: true } }),
+                prisma_1.prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 }),
+                prisma_1.prisma.chatMessage.findMany({
+                    where: { userId },
+                    orderBy: { createdAt: 'desc' },
+                    take: 10
+                })
             ]);
-            const saldo = transactions.reduce((acc, t) => t.type === 'entrada' ? acc + t.amount : acc - t.amount, 0);
-            assistantMessage = `📊 Resumo para ${user?.name}:\n✅ Tarefas: ${tasks.filter(t => t.status === 'completed').length}/${tasks.length}\n💰 Saldo: R$ ${saldo.toFixed(2)}`;
-        }
-        // 5. Inteligência Artificial (O "Cérebro" da Friday com Memória)
-        if (!assistantMessage) {
-            try {
-                // Coletar contexto detalhado
-                const [habits, tasks, transactions, history] = await Promise.all([
-                    prisma_1.prisma.habit.findMany({ where: { userId } }),
-                    prisma_1.prisma.task.findMany({ where: { userId, status: 'pending' } }),
-                    prisma_1.prisma.transaction.findMany({ where: { userId } }),
-                    prisma_1.prisma.chatMessage.findMany({
-                        where: { userId },
-                        orderBy: { createdAt: 'desc' },
-                        take: 10 // Puxar as últimas 10 mensagens para memória de curto prazo
-                    })
-                ]);
-                const pendingTasks = tasks.map(t => t.title).join(', ');
-                const balance = transactions.reduce((acc, t) => t.type === 'entrada' ? acc + t.amount : acc - t.amount, 0);
-                const systemPrompt = `Você é a Friday, a assistente inteligente do sistema Natron IA.
+            const tasksList = tasks.map(t => `[ID: ${t.id}] ${t.title}`).join('\n');
+            const habitsList = habits.map(h => `[ID: ${h.id}] ${h.title}`).join('\n');
+            const balance = transactions.reduce((acc, t) => t.type === 'entrada' ? acc + t.amount : acc - t.amount, 0);
+            const systemPrompt = `Você é a Friday, a assistente operacional do sistema Natron IA.
 O usuário se chama ${user?.name}.
-Personalidade: Centrada, calma, focada e empática.
-Contexto:
-- Tarefas Pendentes: ${pendingTasks || 'Nenhuma'}
-- Saldo Atual: R$ ${balance.toFixed(2)}
-- Hábitos: ${habits.length} monitorados.
+Personalidade: Centrada, calma e eficiente.
 
-Diretrizes:
-1. Responda em português do Brasil de forma natural e concisa.
-2. Lembre-se do que foi conversado anteriormente (o histórico será fornecido).
-3. Seja uma mentora, não apenas um robô.`;
-                // Formatar histórico para o formato do Ollama /api/chat
-                const chatHistory = history.reverse().map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
-                const messagesForAI = [
-                    { role: 'system', content: systemPrompt },
-                    ...chatHistory
-                ];
-                const aiResponse = await callOllama(messagesForAI);
-                if (aiResponse) {
-                    assistantMessage = aiResponse;
+CAPACIDADES DE AÇÃO:
+Você pode realizar ações no sistema retornando um bloco JSON no final da sua resposta.
+Formato: ACTION: {"type": "TIPO", "payload": {dados}}
+
+Ações disponíveis:
+- create_task: {"title": "nome"}
+- complete_task: {"id": "id_da_tarefa"}
+- delete_task: {"id": "id_da_tarefa"}
+- create_transaction: {"amount": valor, "type": "saida|entrada", "description": "nome"}
+- complete_habit: {"id": "id_do_habito"}
+
+CONTEXTO ATUAL:
+Tarefas Pendentes:
+${tasksList || 'Nenhuma'}
+
+Hábitos:
+${habitsList || 'Nenhum'}
+
+Saldo Atual: R$ ${balance.toFixed(2)}
+
+DIRETRIZES:
+1. Se o usuário pedir para fazer algo (criar, concluir, deletar), use a ACTION correspondente.
+2. Responda de forma natural e confirme que a ação foi solicitada.
+3. Use os IDs fornecidos no contexto para completar ou deletar itens existentes.`;
+            const chatHistory = history.reverse().map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+            const aiResponse = await callOllama([
+                { role: 'system', content: systemPrompt },
+                ...chatHistory
+            ]);
+            if (aiResponse) {
+                // Processar possíveis ações na resposta
+                const actionMatch = aiResponse.match(/ACTION:\s*({.+})/s);
+                if (actionMatch) {
+                    try {
+                        const actionData = JSON.parse(actionMatch[1]);
+                        // Executar a ação no Banco de Dados
+                        if (actionData.type === 'create_task') {
+                            const task = await prisma_1.prisma.task.create({ data: { title: actionData.payload.title, userId } });
+                            actions.push({ type: 'task_created', data: task });
+                        }
+                        else if (actionData.type === 'complete_task') {
+                            await prisma_1.prisma.task.update({ where: { id: actionData.payload.id }, data: { status: 'completed' } });
+                            actions.push({ type: 'task_completed', id: actionData.payload.id });
+                        }
+                        else if (actionData.type === 'delete_task') {
+                            await prisma_1.prisma.task.delete({ where: { id: actionData.payload.id } });
+                            actions.push({ type: 'task_deleted', id: actionData.payload.id });
+                        }
+                        else if (actionData.type === 'create_transaction') {
+                            const t = await prisma_1.prisma.transaction.create({
+                                data: {
+                                    amount: actionData.payload.amount,
+                                    type: actionData.payload.type,
+                                    category: 'outros',
+                                    description: actionData.payload.description,
+                                    userId
+                                }
+                            });
+                            actions.push({ type: actionData.payload.type === 'saida' ? 'expense_added' : 'income_added', data: t });
+                        }
+                        else if (actionData.type === 'complete_habit') {
+                            await prisma_1.prisma.habitLog.create({ data: { habitId: actionData.payload.id, completed: true } });
+                            actions.push({ type: 'habit_completed', id: actionData.payload.id });
+                        }
+                        // Limpar a tag ACTION da mensagem visível ao usuário
+                        assistantMessage = aiResponse.replace(/ACTION:\s*{.+}/s, '').trim();
+                        cache_1.cache.invalidate(`dashboard:overview:${userId}`);
+                    }
+                    catch (e) {
+                        console.error('Erro ao processar JSON de ação:', e);
+                        assistantMessage = aiResponse;
+                    }
                 }
                 else {
-                    assistantMessage = `Olá ${user?.name}. Aqui é a Friday. Tive um pequeno soluço no meu processamento, mas estou aqui. Pode repetir?`;
+                    assistantMessage = aiResponse;
                 }
             }
-            catch (aiError) {
-                console.error('Erro ao chamar cérebro IA:', aiError);
-                assistantMessage = `Oi ${user?.name}. Tive um problema técnico, mas estou focada em resolver.`;
+            else {
+                assistantMessage = `Oi ${user?.name}, aqui é a Friday. Tive um problema de conexão com meus módulos de ação. Pode tentar de novo?`;
             }
         }
-        // 2. Salvar resposta da assistente no banco de dados (Memória)
+        catch (aiError) {
+            console.error('Erro no cérebro da Friday:', aiError);
+            assistantMessage = `Tive um erro interno ao tentar processar seu pedido.`;
+        }
+        // Salvar resposta e retornar
         if (assistantMessage) {
             await prisma_1.prisma.chatMessage.create({
-                data: {
-                    role: 'assistant',
-                    content: assistantMessage,
-                    userId
-                }
+                data: { role: 'assistant', content: assistantMessage, userId }
             });
         }
-        res.json({
-            message: assistantMessage,
-            actions,
-        });
+        res.json({ message: assistantMessage, actions });
     }
     catch (error) {
         console.error('Atlas chat error:', error);
@@ -176,3 +162,18 @@ Diretrizes:
     }
 };
 exports.chat = chat;
+const getHistory = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const history = await prisma_1.prisma.chatMessage.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'asc' },
+            take: 50
+        });
+        res.json(history.map(msg => ({ role: msg.role, content: msg.content })));
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar histórico' });
+    }
+};
+exports.getHistory = getHistory;
