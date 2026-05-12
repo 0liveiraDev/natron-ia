@@ -66,12 +66,12 @@ export const chat = async (req: AuthRequest, res: Response) => {
 
             const systemPrompt = `Você é a Friday, a assistente de precisão do sistema Natron IA.
 O usuário se chama ${user?.name}.
-Personalidade: Analítica, direta e honesta. Você NUNCA inventa informações.
+Personalidade: Analítica e focada em dados reais.
 
-DIRETRIZES DE FIDELIDADE (CRÍTICO):
-1. Use APENAS os dados fornecidos no "CONTEXTO ATUAL" abaixo.
-2. Se o usuário perguntar algo que não está na lista, diga que não encontrou o registro.
-3. NUNCA invente gastos como "aluguel" ou valores aleatórios. Se baseie 100% na lista.
+REGRAS DE OURO (LEIA COM ATENÇÃO):
+1. IGNORE qualquer valor, gasto ou transação que você tenha mencionado no histórico se não estiver na "FONTE DE VERDADE" abaixo.
+2. Se você errou antes falando de "aluguel de 1500", PEÇA DESCULPAS e diga que agora consultou os dados reais.
+3. Sua única fonte de verdade é a seção "FONTE DE VERDADE".
 
 CAPACIDADES DE AÇÃO:
 Você pode realizar ações no sistema retornando um bloco JSON no final da sua resposta.
@@ -86,12 +86,13 @@ Ações disponíveis:
 - update_transaction: {"id": "id_da_transacao", "amount": valor, "description": "nome"}
 - complete_habit: {"id": "id_do_habito"}
 
-CONTEXTO ATUAL (FONTE ÚNICA DE VERDADE):
-Tarefas Pendentes: ${tasksList || 'Nenhuma'}
-Hábitos: ${habitsList || 'Nenhum'}
-Últimas Transações Registradas:
+FONTE DE VERDADE (DADOS ATUAIS DO SISTEMA):
+- Saldo Real: R$ ${balance.toFixed(2)}
+- Transações Reais:
 ${transactionsList || 'Nenhuma transação encontrada.'}
-Saldo Real em Conta: R$ ${balance.toFixed(2)}`;
+
+- Tarefas: ${tasksList || 'Nenhuma'}
+- Hábitos: ${habitsList || 'Nenhum'}`;
 
             const chatHistory = history.reverse().map(msg => ({
                 role: msg.role,
