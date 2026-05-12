@@ -94,6 +94,7 @@ Ações disponíveis:
 - delete_task: {"id": "id_da_tarefa"}
 - create_transaction: {"amount": valor, "type": "saida|entrada", "description": "nome"}
 - delete_transaction: {"id": "id_da_transacao"}
+- delete_all_transactions: {}
 - update_transaction: {"id": "id_da_transacao", "amount": valor, "description": "nome"}
 - complete_habit: {"id": "id_do_habito"}
 
@@ -115,16 +116,17 @@ ${transactionsList || 'Nenhuma transação encontrada.'}
             ]);
 
             if (aiResponse) {
-                // Processar possíveis ações na resposta
-                const actionMatch = aiResponse.match(/ACTION:\s*({.+})/s);
-                if (actionMatch) {
+                // Processar múltiplas ações na resposta (suporte a array ou múltiplos blocos)
+                const actionMatches = aiResponse.matchAll(/ACTION:\s*({.+?})/gs);
+                
+                for (const match of actionMatches) {
                     try {
-                        const actionData = JSON.parse(actionMatch[1]);
-                        
-                        // Executar a ação no Banco de Dados
+                        const actionData = JSON.parse(match[1]);
+                        console.log('Processando ação:', actionData.type);
+
                         if (actionData.type === 'create_task') {
-                            const task = await prisma.task.create({ data: { title: actionData.payload.title, userId } });
-                            actions.push({ type: 'task_created', data: task });
+                            const t = await prisma.task.create({ data: { userId, title: actionData.payload.title, status: 'pending' } });
+                            actions.push({ type: 'task_created', data: t });
                         } else if (actionData.type === 'complete_task') {
                             await prisma.task.update({ where: { id: actionData.payload.id }, data: { status: 'completed' } });
                             actions.push({ type: 'task_completed', id: actionData.payload.id });
@@ -134,17 +136,20 @@ ${transactionsList || 'Nenhuma transação encontrada.'}
                         } else if (actionData.type === 'create_transaction') {
                             const t = await prisma.transaction.create({ 
                                 data: { 
+                                    userId, 
                                     amount: actionData.payload.amount, 
                                     type: actionData.payload.type, 
-                                    category: 'outros', 
-                                    description: actionData.payload.description, 
-                                    userId 
+                                    description: actionData.payload.description,
+                                    category: 'Outros' 
                                 } 
                             });
                             actions.push({ type: actionData.payload.type === 'saida' ? 'expense_added' : 'income_added', data: t });
                         } else if (actionData.type === 'delete_transaction') {
                             await prisma.transaction.delete({ where: { id: actionData.payload.id } });
                             actions.push({ type: 'transaction_deleted', id: actionData.payload.id });
+                        } else if (actionData.type === 'delete_all_transactions') {
+                            await prisma.transaction.deleteMany({ where: { userId } });
+                            actions.push({ type: 'all_transactions_deleted' });
                         } else if (actionData.type === 'update_transaction') {
                             const updated = await prisma.transaction.update({ 
                                 where: { id: actionData.payload.id }, 
@@ -158,17 +163,14 @@ ${transactionsList || 'Nenhuma transação encontrada.'}
                             await prisma.habitLog.create({ data: { habitId: actionData.payload.id, completed: true } });
                             actions.push({ type: 'habit_completed', id: actionData.payload.id });
                         }
-
-                        // Limpar a tag ACTION da mensagem visível ao usuário
-                        assistantMessage = aiResponse.replace(/ACTION:\s*{.+}/s, '').trim();
-                        cache.invalidate(`dashboard:overview:${userId}`);
                     } catch (e) {
-                        console.error('Erro ao processar JSON de ação:', e);
-                        assistantMessage = aiResponse;
+                        console.error('Erro ao processar JSON de ação individual:', e);
                     }
-                } else {
-                    assistantMessage = aiResponse;
                 }
+
+                // Limpar todas as tags ACTION da mensagem visível ao usuário
+                assistantMessage = aiResponse.replace(/ACTION:\s*{.+?}/gs, '').trim();
+                cache.invalidate(`dashboard:overview:${userId}`);
             } else {
                 assistantMessage = `Oi ${user?.name}, aqui é a Friday. Tive um problema de conexão com meus módulos de ação. Pode tentar de novo?`;
             }
