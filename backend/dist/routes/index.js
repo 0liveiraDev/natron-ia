@@ -40,7 +40,7 @@ const habitController = __importStar(require("../controllers/habitController"));
 const taskController = __importStar(require("../controllers/taskController"));
 const financeController = __importStar(require("../controllers/financeController"));
 const activityController = __importStar(require("../controllers/activityController"));
-const atlasController = __importStar(require("../controllers/atlasController"));
+const fridayController = __importStar(require("../controllers/fridayController"));
 const dashboardController = __importStar(require("../controllers/dashboardController"));
 const adminController_1 = require("../controllers/adminController");
 const uploadMiddleware_1 = require("../middlewares/uploadMiddleware");
@@ -81,10 +81,16 @@ router.get('/finance/evolution', auth_1.authMiddleware, dashboardController.getF
 router.put('/finance/config', auth_1.authMiddleware, financeController.updateFinancialConfig);
 // Activity routes
 router.get('/activities', auth_1.authMiddleware, activityController.getActivities);
-// Atlas routes
-router.post('/atlas/chat', auth_1.authMiddleware, atlasController.chat);
-router.get('/atlas/history', auth_1.authMiddleware, atlasController.getHistory);
-router.post('/atlas/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.upload.single('file'), atlasController.uploadPdf);
+// Friday AI routes
+router.post('/friday/chat', auth_1.authMiddleware, fridayController.chat);
+router.get('/friday/history', auth_1.authMiddleware, fridayController.getHistory);
+router.post('/friday/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.upload.single('file'), fridayController.uploadPdf);
+router.post('/friday/onboarding', auth_1.authMiddleware, fridayController.saveOnboarding);
+router.get('/friday/preferences', auth_1.authMiddleware, fridayController.getPreferences);
+// Legacy aliases (backward compat)
+router.post('/atlas/chat', auth_1.authMiddleware, fridayController.chat);
+router.get('/atlas/history', auth_1.authMiddleware, fridayController.getHistory);
+router.post('/atlas/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.upload.single('file'), fridayController.uploadPdf);
 // Dashboard routes
 router.get('/dashboard/overview', auth_1.authMiddleware, dashboardController.getOverview);
 router.get('/dashboard/weekly-progress', auth_1.authMiddleware, dashboardController.getWeeklyProgress);

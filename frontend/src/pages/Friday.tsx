@@ -220,22 +220,24 @@ const Friday: React.FC = () => {
             setMessages((prev) => [...prev, { role: 'assistant', content: assistantMessage }]);
 
             if (actions && actions.length > 0) {
-                let hasXpChanges = false;
                 actions.forEach((action: any) => {
-                    if (action.type === 'task_created') {
-                        showToast('✅ Tarefa criada com sucesso!', 'success');
-                    } else if (action.type === 'expense_added') {
-                        showToast('💸 Gasto registrado!', 'success');
-                    } else if (action.type === 'income_added') {
-                        showToast('💰 Entrada registrada!', 'success');
-                        hasXpChanges = true;
+                    switch (action.type) {
+                        case 'task_created': showToast('✅ Tarefa criada!', 'success'); break;
+                        case 'task_completed': showToast('🎯 Tarefa concluída!', 'success'); break;
+                        case 'task_deleted': showToast('🗑️ Tarefa removida', 'success'); break;
+                        case 'expense_added': showToast('💸 Gasto registrado!', 'success'); break;
+                        case 'income_added': showToast('💰 Entrada registrada!', 'success'); break;
+                        case 'transaction_updated': showToast('✏️ Transação atualizada!', 'success'); break;
+                        case 'transaction_deleted': showToast('🗑️ Transação removida', 'success'); break;
+                        case 'all_transactions_deleted': showToast('🗑️ Todas as transações removidas', 'success'); break;
+                        case 'habit_created': showToast('🎯 Hábito criado!', 'success'); break;
+                        case 'habit_updated': showToast('✏️ Hábito atualizado!', 'success'); break;
+                        case 'habit_deleted': showToast('🗑️ Hábito removido', 'success'); break;
+                        case 'habit_completed': showToast('🔥 Hábito completado!', 'success'); break;
                     }
                 });
 
-                if (hasXpChanges || actions.length > 0) {
-                    await refreshUser();
-                    await fetchHistory();
-                }
+                await refreshUser();
             }
         } catch {
             showToast('Erro ao conversar com Friday', 'error');
@@ -445,6 +447,13 @@ const Friday: React.FC = () => {
                             💸 Registrar gasto
                         </button>
                         <button
+                            onClick={() => setInput('Como estão minhas finanças nos últimos 3 meses?')}
+                            className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
+                            disabled={loading}
+                        >
+                            📊 Balanço financeiro
+                        </button>
+                        <button
                             onClick={() => setInput('Crie uma tarefa para estudar React')}
                             className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
                             disabled={loading}
@@ -452,11 +461,11 @@ const Friday: React.FC = () => {
                             ✅ Criar tarefa
                         </button>
                         <button
-                            onClick={() => setInput('Como está meu progresso hoje?')}
+                            onClick={() => setInput('Crie um hábito de meditar todo dia')}
                             className="text-[10px] sm:text-xs px-3 py-2 glass-card rounded-lg hover:bg-dark-700/60 transition-all whitespace-nowrap"
                             disabled={loading}
                         >
-                            📊 Ver progresso
+                            🎯 Criar hábito
                         </button>
                     </div>
 
