@@ -53,9 +53,10 @@ function extractActions(text: string): { type: string; payload: any }[] {
                 const jsonStr = text.substring(startIdx, i + 1);
                 try {
                     const parsed = JSON.parse(jsonStr);
-                    if (parsed && typeof parsed === 'object' && parsed.type) {
-                        const { type, payload, ...rest } = parsed;
-                        results.push({ type, payload: payload || rest });
+                    const typeValue = parsed.type || parsed.tipo || parsed.action || parsed.acao;
+                    if (parsed && typeof parsed === 'object' && typeValue) {
+                        const payload = parsed.payload || parsed.dados || parsed;
+                        results.push({ type: typeValue, payload: payload });
                     }
                 } catch (e) {
                     // Ignore invalid JSON blocks
@@ -73,12 +74,13 @@ function extractActions(text: string): { type: string; payload: any }[] {
             const parsedArray = JSON.parse(match[0]);
             if (Array.isArray(parsedArray)) {
                 for (const item of parsedArray) {
-                    if (item && typeof item === 'object' && item.type) {
+                    const typeValue = item.type || item.tipo || item.action || item.acao;
+                    if (item && typeof item === 'object' && typeValue) {
                         // Avoid duplicates if the array items were already caught by the object parser
-                        const exists = results.some(r => JSON.stringify(r.payload) === JSON.stringify(item.payload || item));
+                        const payload = item.payload || item.dados || item;
+                        const exists = results.some(r => JSON.stringify(r.payload) === JSON.stringify(payload));
                         if (!exists) {
-                            const { type, payload, ...rest } = item;
-                            results.push({ type, payload: payload || rest });
+                            results.push({ type: typeValue, payload: payload });
                         }
                     }
                 }
@@ -260,13 +262,16 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
 
             if (aiResponse) {
                 const parsedActions = extractActions(aiResponse);
+                let debugErrors = '';
 
                 for (const actionData of parsedActions) {
                     try {
                         console.log('Action:', actionData.type, JSON.stringify(actionData.payload));
+                        const actionType = String(actionData.type).toLowerCase();
 
-                        switch (actionData.type) {
-                            case 'create_task': {
+                        switch (actionType) {
+                            case 'create_task':
+                            case 'criar_tarefa': {
                                 const title = actionData.payload.title || actionData.payload.titulo || 'Nova Tarefa';
                                 const t = await prisma.task.create({
                                     data: { userId, title, status: 'pending' }
@@ -286,7 +291,9 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                                 actions.push({ type: 'task_deleted', id: actionData.payload.id });
                                 break;
                             }
-                            case 'create_transaction': {
+                            case 'create_transaction':
+                            case 'criar_transacao':
+                            case 'criar_gasto': {
                                 const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
                                 let amount = parseFloat(String(rawAmount).replace(',', '.'));
                                 if (isNaN(amount)) amount = 0;
@@ -394,12 +401,16 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                         }
                     } catch (e: any) {
                         console.error('Erro ao processar ação:', actionData.type, e?.message);
+                        debugErrors += `\n[Erro em ${actionData.type}: ${e?.message}]`;
                     }
                 }
 
                 // Clean all action text from visible message
                 assistantMessage = cleanActionText(aiResponse);
-                cache.invalidate(`dashboard:overview:${userId}`);
+                if (debugErrors) assistantMessage += `\n\n⚠️ Erros internos:${debugErrors}`;
+                if (assistantMessage === 'Feito! ✅' && parsedActions.length === 0) {
+                     assistantMessage += `\n\n[DEBUG RAW AI]: ${aiResponse}`;
+                }
             } else {
                 assistantMessage = `${nick}, tive um problema de conexão. Tenta de novo?`;
             }
