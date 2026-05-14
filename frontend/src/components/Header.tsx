@@ -183,6 +183,7 @@ const Header: React.FC = () => {
                 {/* Logout Button - Mobile Mode Only */}
                 {isMobileMode && (
                     <button
+                        aria-label="Sair da conta"
                         onClick={() => {
                             clearUser();
                             logout();
@@ -218,7 +219,7 @@ const Header: React.FC = () => {
                 )}
 
                 <button
-                    onClick={() => navigate('/atlas')}
+                    onClick={() => navigate('/friday')}
                     className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-sm font-medium"
                 >
                     <Bot size={16} className="text-[#ff9500]" />

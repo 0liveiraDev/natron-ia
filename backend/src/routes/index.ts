@@ -5,7 +5,7 @@ import * as habitController from '../controllers/habitController';
 import * as taskController from '../controllers/taskController';
 import * as financeController from '../controllers/financeController';
 import * as activityController from '../controllers/activityController';
-import * as atlasController from '../controllers/atlasController';
+import * as fridayController from '../controllers/fridayController';
 import * as dashboardController from '../controllers/dashboardController';
 import { resetAllXp, getAllUsers, toggleUserActive } from '../controllers/adminController';
 
@@ -56,10 +56,16 @@ router.put('/finance/config', authMiddleware, financeController.updateFinancialC
 // Activity routes
 router.get('/activities', authMiddleware, activityController.getActivities);
 
-// Atlas routes
-router.post('/atlas/chat', authMiddleware, atlasController.chat);
-router.get('/atlas/history', authMiddleware, atlasController.getHistory);
-router.post('/atlas/upload-pdf', authMiddleware, upload.single('file'), atlasController.uploadPdf);
+// Friday AI routes
+router.post('/friday/chat', authMiddleware, fridayController.chat);
+router.get('/friday/history', authMiddleware, fridayController.getHistory);
+router.post('/friday/upload-pdf', authMiddleware, upload.single('file'), fridayController.uploadPdf);
+router.post('/friday/onboarding', authMiddleware, fridayController.saveOnboarding);
+router.get('/friday/preferences', authMiddleware, fridayController.getPreferences);
+// Legacy aliases (backward compat)
+router.post('/atlas/chat', authMiddleware, fridayController.chat);
+router.get('/atlas/history', authMiddleware, fridayController.getHistory);
+router.post('/atlas/upload-pdf', authMiddleware, upload.single('file'), fridayController.uploadPdf);
 
 // Dashboard routes
 router.get('/dashboard/overview', authMiddleware, dashboardController.getOverview);

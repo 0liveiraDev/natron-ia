@@ -5,6 +5,7 @@ import api from '../services/api';
 
 import DonutChart from '../components/charts/DonutChart';
 import HorizontalBarChart from '../components/charts/HorizontalBarChart';
+import { DashboardSkeleton } from '../components/Skeletons';
 
 const Dashboard: React.FC = () => {
     const [overview, setOverview] = useState<any>(null);
@@ -38,11 +39,7 @@ const Dashboard: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-green"></div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     // Prepare chart data

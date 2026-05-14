@@ -38,6 +38,10 @@ model User {
   level           Int      @default(1)
   currentXp       Float    @default(0)
   rank            String   @default("Estudante da Academia")
+
+  // Friday AI preferences
+  fridayNickname  String?  // Como a Friday deve chamar o usuário
+  fridayPurpose   String?  @db.Text // Para que o usuário quer usar a Friday
 }
 
 // Nota: SQLite não suporta enum nativo do Prisma.

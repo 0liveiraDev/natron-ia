@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
 
     const menuItems = [
         { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-        { path: '/atlas', icon: <Bot size={20} />, label: 'Friday' },
+        { path: '/friday', icon: <Bot size={20} />, label: 'Friday' },
         { path: '/tasks', icon: <CheckSquare size={20} />, label: 'Tarefas' },
         { path: '/habits', icon: <Target size={20} />, label: 'Hábitos' },
         { path: '/finance', icon: <Wallet size={20} />, label: 'Financeiro' },

@@ -122,11 +122,11 @@ const Habits: React.FC = () => {
                 </h1>
 
                 <div className="flex items-center justify-between w-full lg:w-auto gap-4 bg-[#0f0f0f] rounded-xl sm:rounded-full px-4 py-2 border border-[#1a1a1a]">
-                    <button onClick={() => handleMonthChange('prev')} className="p-1 hover:text-red-500 transition"><ChevronLeft size={20} /></button>
+                    <button aria-label="Mês anterior" onClick={() => handleMonthChange('prev')} className="p-1 hover:text-red-500 transition"><ChevronLeft size={20} /></button>
                     <span className="text-xs sm:text-sm font-bold uppercase w-full sm:w-32 text-center text-gray-300">
                         {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                     </span>
-                    <button onClick={() => handleMonthChange('next')} className="p-1 hover:text-red-500 transition"><ChevronRight size={20} /></button>
+                    <button aria-label="Próximo mês" onClick={() => handleMonthChange('next')} className="p-1 hover:text-red-500 transition"><ChevronRight size={20} /></button>
                 </div>
             </div>
 
@@ -191,7 +191,7 @@ const Habits: React.FC = () => {
                                         <div className="pr-4">
                                             <div className="flex justify-between items-center mb-1">
                                                 <p className="text-sm font-medium text-gray-200 truncate">{habit.title}</p>
-                                                <button onClick={() => handleDelete(habit.id)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition">
+                                                <button aria-label="Excluir hábito" onClick={() => handleDelete(habit.id)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition">
                                                     <Trash2 size={12} />
                                                 </button>
                                             </div>

@@ -232,11 +232,11 @@ const Finance: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full xl:w-auto">
                     <div className="flex items-center justify-between bg-[#0f0f0f] rounded-xl sm:rounded-full px-4 py-2 border border-[#1a1a1a] flex-1 sm:flex-none">
-                        <button onClick={() => handleMonthChange('prev')} className="p-1 hover:text-[#00ff88] transition"><ChevronLeft size={20} /></button>
+                        <button aria-label="Mês anterior" onClick={() => handleMonthChange('prev')} className="p-1 hover:text-[#00ff88] transition"><ChevronLeft size={20} /></button>
                         <span className="text-xs sm:text-sm font-bold uppercase w-full sm:w-32 text-center text-gray-300">
                             {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                         </span>
-                        <button onClick={() => handleMonthChange('next')} className="p-1 hover:text-[#00ff88] transition"><ChevronRight size={20} /></button>
+                        <button aria-label="Próximo mês" onClick={() => handleMonthChange('next')} className="p-1 hover:text-[#00ff88] transition"><ChevronRight size={20} /></button>
                     </div>
 
                     <div className="flex gap-2">
@@ -511,7 +511,7 @@ const Finance: React.FC = () => {
                                 <span className={`font-mono font-bold text-sm sm:text-base whitespace-nowrap ${t.type === 'entrada' ? 'text-[#00ff88]' : 'text-[#ff3b30]'}`}>
                                     {t.type === 'entrada' ? '+' : '-'} {formatCurrency(t.amount)}
                                 </span>
-                                <button onClick={() => handleDelete(t.id)} className="opacity-100 sm:opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition-all p-1">
+                                <button aria-label="Excluir transação" onClick={() => handleDelete(t.id)} className="opacity-100 sm:opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-500 transition-all p-1">
                                     <Trash2 size={16} />
                                 </button>
                             </div>

@@ -15,7 +15,7 @@ const MobileNav: React.FC = () => {
 
     const menuItems = [
         { path: '/dashboard', icon: <LayoutDashboard size={24} />, label: 'Início' },
-        { path: '/atlas', icon: <Bot size={24} />, label: 'Friday' },
+        { path: '/friday', icon: <Bot size={24} />, label: 'Friday' },
         { path: '/tasks', icon: <CheckSquare size={24} />, label: 'Tarefas' },
         { path: '/habits', icon: <Target size={24} />, label: 'Hábitos' },
         { path: '/finance', icon: <Wallet size={24} />, label: 'Finanças' },

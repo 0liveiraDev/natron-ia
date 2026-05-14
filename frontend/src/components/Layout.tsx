@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileNav from './MobileNav';
+import { PageSkeleton } from './Skeletons';
 
 import { useUI } from '../contexts/UIContext';
 
@@ -20,7 +21,9 @@ const Layout: React.FC = () => {
                 <Header />
                 <main className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pb-20 md:pb-8">
                     <div className="max-w-7xl mx-auto w-full">
-                        <Outlet />
+                        <Suspense fallback={<PageSkeleton />}>
+                            <Outlet />
+                        </Suspense>
                     </div>
                 </main>
 
