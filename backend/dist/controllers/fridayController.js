@@ -193,8 +193,9 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                         console.log('Action:', actionData.type, JSON.stringify(actionData.payload));
                         switch (actionData.type) {
                             case 'create_task': {
+                                const title = actionData.payload.title || actionData.payload.titulo || 'Nova Tarefa';
                                 const t = await prisma_1.prisma.task.create({
-                                    data: { userId, title: actionData.payload.title, status: 'pending' }
+                                    data: { userId, title, status: 'pending' }
                                 });
                                 actions.push({ type: 'task_created', data: t });
                                 await (0, xpService_1.addXp)(userId, 'PRODUTIVIDADE', 5);
@@ -212,29 +213,53 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                                 break;
                             }
                             case 'create_transaction': {
+                                const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
+                                let amount = parseFloat(String(rawAmount).replace(',', '.'));
+                                if (isNaN(amount))
+                                    amount = 0;
+                                let type = String(actionData.payload.type || 'saida').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                if (!['entrada', 'saida'].includes(type)) {
+                                    type = type === 'receita' || type === 'ganho' ? 'entrada' : 'saida';
+                                }
+                                const desc = actionData.payload.description || actionData.payload.descricao || 'Gasto registrado pela Friday';
+                                let cat = String(actionData.payload.category || actionData.payload.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                                 const t = await prisma_1.prisma.transaction.create({
                                     data: {
                                         userId,
-                                        amount: actionData.payload.amount,
-                                        type: actionData.payload.type,
-                                        description: actionData.payload.description,
-                                        category: actionData.payload.category || 'outros'
+                                        amount,
+                                        type,
+                                        description: desc,
+                                        category: cat
                                     }
                                 });
-                                actions.push({ type: actionData.payload.type === 'saida' ? 'expense_added' : 'income_added', data: t });
+                                actions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
                                 await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
                                 break;
                             }
                             case 'update_transaction': {
                                 const updateData = {};
-                                if (actionData.payload.amount !== undefined)
-                                    updateData.amount = actionData.payload.amount;
-                                if (actionData.payload.description)
-                                    updateData.description = actionData.payload.description;
-                                if (actionData.payload.category)
-                                    updateData.category = actionData.payload.category;
-                                if (actionData.payload.type)
-                                    updateData.type = actionData.payload.type;
+                                const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
+                                if (rawAmount !== undefined) {
+                                    const amount = parseFloat(String(rawAmount).replace(',', '.'));
+                                    if (!isNaN(amount))
+                                        updateData.amount = amount;
+                                }
+                                const desc = actionData.payload.description || actionData.payload.descricao;
+                                if (desc)
+                                    updateData.description = desc;
+                                const cat = actionData.payload.category || actionData.payload.categoria;
+                                if (cat) {
+                                    updateData.category = String(cat).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                }
+                                if (actionData.payload.type) {
+                                    let type = String(actionData.payload.type).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                    if (type === 'receita' || type === 'ganho')
+                                        type = 'entrada';
+                                    if (type === 'despesa' || type === 'gasto')
+                                        type = 'saida';
+                                    if (['entrada', 'saida'].includes(type))
+                                        updateData.type = type;
+                                }
                                 const updated = await prisma_1.prisma.transaction.update({
                                     where: { id: actionData.payload.id },
                                     data: updateData
@@ -253,11 +278,12 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                                 break;
                             }
                             case 'create_habit': {
+                                const title = actionData.payload.title || actionData.payload.titulo || 'Novo Hábito';
                                 const h = await prisma_1.prisma.habit.create({
                                     data: {
                                         userId,
-                                        title: actionData.payload.title,
-                                        attribute: actionData.payload.attribute || 'PRODUTIVIDADE'
+                                        title,
+                                        attribute: actionData.payload.attribute || actionData.payload.atributo || 'PRODUTIVIDADE'
                                     }
                                 });
                                 actions.push({ type: 'habit_created', data: h });
@@ -266,10 +292,12 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                             }
                             case 'update_habit': {
                                 const hUpdate = {};
-                                if (actionData.payload.title)
-                                    hUpdate.title = actionData.payload.title;
-                                if (actionData.payload.attribute)
-                                    hUpdate.attribute = actionData.payload.attribute;
+                                const title = actionData.payload.title || actionData.payload.titulo;
+                                if (title)
+                                    hUpdate.title = title;
+                                const attribute = actionData.payload.attribute || actionData.payload.atributo;
+                                if (attribute)
+                                    hUpdate.attribute = attribute;
                                 const hUpdated = await prisma_1.prisma.habit.update({
                                     where: { id: actionData.payload.id },
                                     data: hUpdate
@@ -382,16 +410,26 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
             for (const actionData of parsedActions) {
                 try {
                     if (actionData.type === 'create_transaction') {
+                        const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
+                        let amount = parseFloat(String(rawAmount).replace(',', '.'));
+                        if (isNaN(amount))
+                            amount = 0;
+                        let type = String(actionData.payload.type || 'saida').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        if (!['entrada', 'saida'].includes(type)) {
+                            type = type === 'receita' || type === 'ganho' ? 'entrada' : 'saida';
+                        }
+                        const desc = actionData.payload.description || actionData.payload.descricao || 'Gasto registrado via PDF';
+                        let cat = String(actionData.payload.category || actionData.payload.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                         const t = await prisma_1.prisma.transaction.create({
                             data: {
                                 userId,
-                                amount: actionData.payload.amount,
-                                type: actionData.payload.type || 'saida',
-                                description: actionData.payload.description,
-                                category: actionData.payload.category || 'outros'
+                                amount,
+                                type,
+                                description: desc,
+                                category: cat
                             }
                         });
-                        pdfActions.push({ type: 'expense_added', data: t });
+                        pdfActions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
                         await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
                     }
                 }
