@@ -37,9 +37,11 @@ const callAI = async (messages: any[]): Promise<string | null> => {
 };
 
 // --- Robust JSON extractor for ACTION blocks ---
+// Matches: ACTION:, Ação:, ação:, AÇÃO:, Acão:, Açao:, etc.
 function extractActions(text: string): { type: string; payload: any }[] {
     const results: { type: string; payload: any }[] = [];
-    const regex = /ACTION:\s*(\{)/g;
+    // Match any action-like prefix followed by a JSON object
+    const regex = /(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:\s*(\{)/gi;
     let match;
 
     while ((match = regex.exec(text)) !== null) {
@@ -67,6 +69,19 @@ function extractActions(text: string): { type: string; payload: any }[] {
     }
 
     return results;
+}
+
+// --- Aggressive cleanup: remove ALL action-related text from visible message ---
+function cleanActionText(text: string): string {
+    // 1. Remove ACTION:/Ação: followed by JSON (multiline)
+    let cleaned = text.replace(/(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:\s*\{[\s\S]*?(?:\}\s*\}|\})/gi, '');
+    // 2. Remove any remaining lines that contain {"type": pattern (leaked JSON)
+    cleaned = cleaned.replace(/^.*[{"']type["']\s*:\s*["']\w+["'].*$/gm, '');
+    // 3. Remove lines that are just "Ação:" or "ACTION:" with nothing after
+    cleaned = cleaned.replace(/^\s*(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:?\s*$/gmi, '');
+    // 4. Remove excessive blank lines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    return cleaned || 'Feito! ✅';
 }
 
 // --- Build financial summary for last N months (compact) ---
@@ -156,7 +171,8 @@ export const chat = async (req: AuthRequest, res: Response) => {
             const systemPrompt = `Você é Friday, IA do Natron. Usuário: ${nick}.${purpose}
 Responda em PT-BR, seja direta. Máximo 3-4 frases. Dê insights sobre gastos quando perguntado.
 
-AÇÕES (use EXATAMENTE este formato, pode usar VÁRIAS de uma vez):
+IMPORTANTE: Escreva sua resposta PRIMEIRO, depois coloque as ações NO FINAL.
+Use a palavra ACTION (em inglês, nunca "Ação") seguida de JSON:
 ACTION: {"type":"create_task","payload":{"title":"..."}}
 ACTION: {"type":"complete_task","payload":{"id":"ID"}}
 ACTION: {"type":"delete_task","payload":{"id":"ID"}}
@@ -176,7 +192,7 @@ Tarefas pendentes: ${tasksList || 'nenhuma'}
 Hábitos: ${habitsList || 'nenhum'}
 ${financialSummary}
 
-REGRAS: NUNCA simule dados. Use ACTION para mudar. Para editar categoria/valor, use update_transaction. Para análise financeira, use os dados acima.`;
+REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON ao usuário.`;
 
             const chatHistory = history.reverse().map(msg => ({
                 role: msg.role as 'user' | 'assistant' | 'system',
@@ -292,10 +308,8 @@ REGRAS: NUNCA simule dados. Use ACTION para mudar. Para editar categoria/valor, 
                     }
                 }
 
-                // Clean ACTION tags from visible message
-                assistantMessage = aiResponse.replace(/ACTION:\s*\{[\s\S]*?\}(?:\s*\})*?(?=\s*(?:ACTION:|$))/g, '').trim();
-                assistantMessage = assistantMessage.replace(/ACTION:.*$/gm, '').trim();
-                if (!assistantMessage) assistantMessage = 'Feito! ✅';
+                // Clean all action text from visible message
+                assistantMessage = cleanActionText(aiResponse);
                 cache.invalidate(`dashboard:overview:${userId}`);
             } else {
                 assistantMessage = `${nick}, tive um problema de conexão. Tenta de novo?`;
@@ -406,10 +420,9 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
                 }
             }
 
-            // Clean ACTION tags from visible message
-            finalMessage = aiResponse.replace(/ACTION:\s*\{[\s\S]*?\}(?:\s*\})*?(?=\s*(?:ACTION:|$))/g, '').trim();
-            finalMessage = finalMessage.replace(/ACTION:.*$/gm, '').trim();
-            if (!finalMessage) finalMessage = 'PDF processado e gastos registrados! ✅';
+            // Clean all action text from visible message
+            finalMessage = cleanActionText(aiResponse);
+            if (finalMessage === 'Feito! ✅') finalMessage = 'PDF processado e gastos registrados! ✅';
             if (pdfActions.length > 0) {
                 finalMessage += `\n\n📋 ${pdfActions.length} transação(ões) registrada(s) automaticamente.`;
             }
