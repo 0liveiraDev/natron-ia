@@ -38,46 +38,98 @@ const callAI = async (messages) => {
         return null;
     }
 };
-// --- Robust JSON extractor for ACTION blocks ---
-// Matches: ACTION:, Ação:, ação:, AÇÃO:, Acão:, Açao:, etc.
+// --- Super Robust JSON extractor for ACTION blocks ---
+// Matches any valid JSON object in the text that has a "type" field
 function extractActions(text) {
     const results = [];
-    // Match any action-like prefix followed by a JSON object
-    const regex = /(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:\s*(\{)/gi;
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-        const startIdx = match.index + match[0].length - 1;
-        let depth = 0;
-        let endIdx = startIdx;
-        for (let i = startIdx; i < text.length; i++) {
-            if (text[i] === '{')
-                depth++;
-            else if (text[i] === '}')
-                depth--;
-            if (depth === 0) {
-                endIdx = i + 1;
-                break;
+    let depth = 0;
+    let startIdx = -1;
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '{') {
+            if (depth === 0)
+                startIdx = i;
+            depth++;
+        }
+        else if (text[i] === '}') {
+            depth--;
+            if (depth === 0 && startIdx !== -1) {
+                const jsonStr = text.substring(startIdx, i + 1);
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed && typeof parsed === 'object' && parsed.type) {
+                        const { type, payload, ...rest } = parsed;
+                        results.push({ type, payload: payload || rest });
+                    }
+                }
+                catch (e) {
+                    // Ignore invalid JSON blocks
+                }
+                startIdx = -1;
             }
         }
+    }
+    // Also look for JSON arrays if the LLM generated an array
+    const arrayRegex = /\[\s*\{[\s\S]*\}\s*\]/g;
+    let match;
+    while ((match = arrayRegex.exec(text)) !== null) {
         try {
-            const jsonStr = text.substring(startIdx, endIdx);
-            const parsed = JSON.parse(jsonStr);
-            const { type, payload, ...rest } = parsed;
-            results.push({ type, payload: payload || rest });
+            const parsedArray = JSON.parse(match[0]);
+            if (Array.isArray(parsedArray)) {
+                for (const item of parsedArray) {
+                    if (item && typeof item === 'object' && item.type) {
+                        // Avoid duplicates if the array items were already caught by the object parser
+                        const exists = results.some(r => JSON.stringify(r.payload) === JSON.stringify(item.payload || item));
+                        if (!exists) {
+                            const { type, payload, ...rest } = item;
+                            results.push({ type, payload: payload || rest });
+                        }
+                    }
+                }
+            }
         }
         catch (e) {
-            console.error('Erro ao parsear ACTION JSON:', e);
+            // Ignore
         }
     }
     return results;
 }
 // --- Aggressive cleanup: remove ALL action-related text from visible message ---
 function cleanActionText(text) {
-    // 1. Remove ACTION:/Ação: followed by JSON (multiline)
-    let cleaned = text.replace(/(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:\s*\{[\s\S]*?(?:\}\s*\}|\})/gi, '');
-    // 2. Remove any remaining lines that contain {"type": pattern (leaked JSON)
-    cleaned = cleaned.replace(/^.*[{"']type["']\s*:\s*["']\w+["'].*$/gm, '');
-    // 3. Remove lines that are just "Ação:" or "ACTION:" with nothing after
+    let cleaned = text;
+    // 1. Remove any JSON objects that have "type"
+    let depth = 0;
+    let startIdx = -1;
+    let rangesToRemove = [];
+    for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === '{') {
+            if (depth === 0)
+                startIdx = i;
+            depth++;
+        }
+        else if (cleaned[i] === '}') {
+            depth--;
+            if (depth === 0 && startIdx !== -1) {
+                const jsonStr = cleaned.substring(startIdx, i + 1);
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed && typeof parsed === 'object' && parsed.type) {
+                        rangesToRemove.push({ start: startIdx, end: i + 1 });
+                    }
+                }
+                catch (e) {
+                    // Not valid JSON, ignore
+                }
+                startIdx = -1;
+            }
+        }
+    }
+    // Remove from end to start to avoid index shifting
+    for (let i = rangesToRemove.length - 1; i >= 0; i--) {
+        cleaned = cleaned.substring(0, rangesToRemove[i].start) + cleaned.substring(rangesToRemove[i].end);
+    }
+    // 2. Remove JSON arrays
+    cleaned = cleaned.replace(/\[\s*\{[\s\S]*?\}\s*\]/g, '');
+    // 3. Remove orphaned prefix labels (ACTION:, Ação:, etc)
     cleaned = cleaned.replace(/^\s*(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:?\s*$/gmi, '');
     // 4. Remove excessive blank lines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
