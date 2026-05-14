@@ -5,6 +5,16 @@ import fs from 'fs';
 import path from 'path';
 import { logActivity } from '../services/activityService';
 import { addXp } from '../services/xpService';
+import { cache } from '../lib/cache';
+
+/** Invalida todos os caches financeiros do usuário após mutações */
+function invalidateFinanceCache(userId: string) {
+    cache.invalidate(`dashboard:overview:${userId}`);
+    cache.invalidate(`dashboard:weekly:${userId}`);
+    cache.invalidate(`dashboard:finance-category:${userId}`);
+    cache.invalidate(`dashboard:evolution:${userId}`);
+    cache.invalidate(`dashboard:monthly:${userId}`);
+}
 
 export const createTransaction = async (req: AuthRequest, res: Response) => {
     try {
@@ -42,6 +52,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             console.error('Error awarding XP in createTransaction:', xpError);
         }
 
+        invalidateFinanceCache(userId);
         res.status(201).json(transaction);
     } catch (error) {
         console.error('Create transaction error:', error);
@@ -85,6 +96,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
             },
         });
 
+        invalidateFinanceCache(userId);
         res.json(transaction);
     } catch (error) {
         console.error('Update transaction error:', error);
@@ -125,6 +137,7 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
             console.error('Error removing XP in deleteTransaction:', xpError);
         }
 
+        invalidateFinanceCache(userId);
         res.json({ message: 'Transação deletada com sucesso' });
     } catch (error) {
         console.error('Delete transaction error:', error);
@@ -362,6 +375,7 @@ export const confirmReceipt = async (req: AuthRequest, res: Response) => {
             console.error('Error awarding XP in confirmReceipt:', xpError);
         }
 
+        invalidateFinanceCache(userId);
         res.status(201).json({
             success: true,
             transaction,

@@ -41,6 +41,15 @@ const prisma_1 = require("../lib/prisma");
 const fs_1 = __importDefault(require("fs"));
 const activityService_1 = require("../services/activityService");
 const xpService_1 = require("../services/xpService");
+const cache_1 = require("../lib/cache");
+/** Invalida todos os caches financeiros do usuário após mutações */
+function invalidateFinanceCache(userId) {
+    cache_1.cache.invalidate(`dashboard:overview:${userId}`);
+    cache_1.cache.invalidate(`dashboard:weekly:${userId}`);
+    cache_1.cache.invalidate(`dashboard:finance-category:${userId}`);
+    cache_1.cache.invalidate(`dashboard:evolution:${userId}`);
+    cache_1.cache.invalidate(`dashboard:monthly:${userId}`);
+}
 const createTransaction = async (req, res) => {
     try {
         const { amount, type, category, description, date } = req.body;
@@ -69,6 +78,7 @@ const createTransaction = async (req, res) => {
         catch (xpError) {
             console.error('Error awarding XP in createTransaction:', xpError);
         }
+        invalidateFinanceCache(userId);
         res.status(201).json(transaction);
     }
     catch (error) {
@@ -108,6 +118,7 @@ const updateTransaction = async (req, res) => {
                 date: date ? new Date(date) : undefined,
             },
         });
+        invalidateFinanceCache(userId);
         res.json(transaction);
     }
     catch (error) {
@@ -144,6 +155,7 @@ const deleteTransaction = async (req, res) => {
         catch (xpError) {
             console.error('Error removing XP in deleteTransaction:', xpError);
         }
+        invalidateFinanceCache(userId);
         res.json({ message: 'Transação deletada com sucesso' });
     }
     catch (error) {
@@ -358,6 +370,7 @@ const confirmReceipt = async (req, res) => {
         catch (xpError) {
             console.error('Error awarding XP in confirmReceipt:', xpError);
         }
+        invalidateFinanceCache(userId);
         res.status(201).json({
             success: true,
             transaction,
