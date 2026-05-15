@@ -443,7 +443,7 @@ export const getHistory = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const history = await prisma.chatMessage.findMany({
-            where: { userId },
+            where: { userId, role: { not: 'system' } },
             orderBy: { createdAt: 'desc' },
             take: 50
         });
