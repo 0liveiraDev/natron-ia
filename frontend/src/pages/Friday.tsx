@@ -1,13 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
-import { Bot, Sparkles, Send } from 'lucide-react';
+import { Bot, Sparkles, Send, Clock, Brain, Zap } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
+    timestamp?: string;
+    responseTime?: number; // in seconds
 }
 
 interface FridayPreferences {
@@ -16,6 +18,10 @@ interface FridayPreferences {
     isOnboarded: boolean;
 }
 
+const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+};
+
 const Friday: React.FC = () => {
     const { refreshUser } = useUser();
     const [messages, setMessages] = useState<Message[]>([]);
@@ -23,8 +29,36 @@ const Friday: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [uploadingFile, setUploadingFile] = useState(false);
     const [pendingReceipt, setPendingReceipt] = useState<any>(null);
+    const [thinkingElapsed, setThinkingElapsed] = useState(0);
+    const thinkingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const thinkingStartRef = useRef<number>(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { showToast, ToastContainer } = useToast();
+
+    // Timer for thinking elapsed time
+    const startThinking = useCallback(() => {
+        thinkingStartRef.current = Date.now();
+        setThinkingElapsed(0);
+        thinkingTimerRef.current = setInterval(() => {
+            setThinkingElapsed(Math.floor((Date.now() - thinkingStartRef.current) / 100) / 10);
+        }, 100);
+    }, []);
+
+    const stopThinking = useCallback((): number => {
+        if (thinkingTimerRef.current) {
+            clearInterval(thinkingTimerRef.current);
+            thinkingTimerRef.current = null;
+        }
+        const elapsed = Math.round((Date.now() - thinkingStartRef.current) / 100) / 10;
+        setThinkingElapsed(0);
+        return elapsed;
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (thinkingTimerRef.current) clearInterval(thinkingTimerRef.current);
+        };
+    }, []);
 
     // Onboarding state
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -50,13 +84,15 @@ const Friday: React.FC = () => {
                 } else {
                     setMessages([{
                         role: 'assistant',
-                        content: `E aí, ${prefs.nickname}! 🤖 Sou a Friday, sua assistente. Como posso ajudar?`
+                        content: `E aí, ${prefs.nickname}! 🤖 Sou a Friday, sua assistente. Como posso ajudar?`,
+                        timestamp: formatTime(new Date()),
                     }]);
                 }
             } catch {
                 setMessages([{
                     role: 'assistant',
-                    content: 'Olá! Eu sou a Friday, sua assistente pessoal. Como posso ajudar você hoje? 🤖'
+                    content: 'Olá! Eu sou a Friday, sua assistente pessoal. Como posso ajudar você hoje? 🤖',
+                    timestamp: formatTime(new Date()),
                 }]);
             } finally {
                 setOnboardingLoading(false);
@@ -102,7 +138,8 @@ const Friday: React.FC = () => {
             setShowOnboarding(false);
             setMessages([{
                 role: 'assistant',
-                content: `Prazer em te conhecer, ${nickname.trim()}! 🤖✨ Sou a Friday, sua assistente pessoal no Natron. Posso criar tarefas, registrar gastos, acompanhar seus hábitos e muito mais. É só pedir!`
+                content: `Prazer em te conhecer, ${nickname.trim()}! 🤖✨ Sou a Friday, sua assistente pessoal no Natron. Posso criar tarefas, registrar gastos, acompanhar seus hábitos e muito mais. É só pedir!`,
+                timestamp: formatTime(new Date()),
             }]);
             showToast('Friday configurada com sucesso!', 'success');
         } catch {
@@ -124,14 +161,14 @@ const Friday: React.FC = () => {
             showToast('✅ Gasto registrado com sucesso!', 'success');
             setMessages((prev) => [
                 ...prev,
-                { role: 'assistant', content: '✅ Gasto registrado com sucesso! Você pode ver na página de Financeiro.' },
+                { role: 'assistant', content: '✅ Gasto registrado com sucesso! Você pode ver na página de Financeiro.', timestamp: formatTime(new Date()) },
             ]);
             setPendingReceipt(null);
         } catch {
             showToast('Erro ao confirmar gasto', 'error');
             setMessages((prev) => [
                 ...prev,
-                { role: 'assistant', content: 'Erro ao confirmar o gasto. Tente novamente.' },
+                { role: 'assistant', content: 'Erro ao confirmar o gasto. Tente novamente.', timestamp: formatTime(new Date()) },
             ]);
         } finally {
             setLoading(false);
@@ -146,7 +183,8 @@ const Friday: React.FC = () => {
         const fileIcon = isImage ? '📷' : '📄';
 
         setUploadingFile(true);
-        setMessages((prev) => [...prev, { role: 'user', content: `${fileIcon} Enviando ${file.name}...` }]);
+        setMessages((prev) => [...prev, { role: 'user', content: `${fileIcon} Enviando ${file.name}...`, timestamp: formatTime(new Date()) }]);
+        startThinking();
 
         try {
             const formData = new FormData();
@@ -154,7 +192,8 @@ const Friday: React.FC = () => {
             const response = await api.post('/friday/upload-file', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message }]);
+            const elapsed = stopThinking();
+            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message, timestamp: formatTime(new Date()), responseTime: elapsed }]);
 
             if (response.data.actions && response.data.actions.length > 0) {
                 response.data.actions.forEach((action: any) => {
@@ -166,8 +205,9 @@ const Friday: React.FC = () => {
                 await refreshUser();
             }
         } catch {
+            stopThinking();
             showToast('Erro ao processar arquivo', 'error');
-            setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao analisar o arquivo. Tente novamente.' }]);
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao analisar o arquivo. Tente novamente.', timestamp: formatTime(new Date()) }]);
         } finally {
             setUploadingFile(false);
             e.target.value = '';
@@ -181,8 +221,9 @@ const Friday: React.FC = () => {
         const userMessage = input.trim();
         const userMessageLower = userMessage.toLowerCase();
         setInput('');
-        setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+        setMessages((prev) => [...prev, { role: 'user', content: userMessage, timestamp: formatTime(new Date()) }]);
         setLoading(true);
+        startThinking();
 
         try {
             // Verificar valor para nota fiscal pendente
@@ -192,9 +233,10 @@ const Friday: React.FC = () => {
                     const valorStr = valorMatch[1].replace(/\./g, '').replace(',', '.');
                     const valor = parseFloat(valorStr);
                     pendingReceipt.amount = valor;
+                    const elapsed = stopThinking();
                     setMessages((prev) => [
                         ...prev,
-                        { role: 'assistant', content: `✅ Valor atualizado: R$ ${valor.toFixed(2)}\n\nDigite "sim" para confirmar.` },
+                        { role: 'assistant', content: `✅ Valor atualizado: R$ ${valor.toFixed(2)}\n\nDigite "sim" para confirmar.`, timestamp: formatTime(new Date()), responseTime: elapsed },
                     ]);
                     setLoading(false);
                     return;
@@ -204,9 +246,10 @@ const Friday: React.FC = () => {
             // Confirmar nota fiscal pendente
             if (pendingReceipt && ['sim', 'confirmar', 'ok', 'confirma', 'yes'].includes(userMessageLower)) {
                 if (!pendingReceipt.amount) {
+                    stopThinking();
                     setMessages((prev) => [
                         ...prev,
-                        { role: 'assistant', content: '⚠️ Informe o valor primeiro.\nExemplo: "valor: 19.13"' },
+                        { role: 'assistant', content: '⚠️ Informe o valor primeiro.\nExemplo: "valor: 19.13"', timestamp: formatTime(new Date()) },
                     ]);
                     setLoading(false);
                     return;
@@ -219,7 +262,8 @@ const Friday: React.FC = () => {
             // Cancelar nota fiscal pendente
             if (pendingReceipt && ['não', 'nao', 'cancelar', 'no'].includes(userMessageLower)) {
                 setPendingReceipt(null);
-                setMessages((prev) => [...prev, { role: 'assistant', content: '❌ Cancelado. Posso ajudar com algo mais?' }]);
+                stopThinking();
+                setMessages((prev) => [...prev, { role: 'assistant', content: '❌ Cancelado. Posso ajudar com algo mais?', timestamp: formatTime(new Date()) }]);
                 setLoading(false);
                 return;
             }
@@ -229,8 +273,9 @@ const Friday: React.FC = () => {
                 history: messages,
             });
 
+            const elapsed = stopThinking();
             const { message: assistantMessage, actions } = response.data;
-            setMessages((prev) => [...prev, { role: 'assistant', content: assistantMessage }]);
+            setMessages((prev) => [...prev, { role: 'assistant', content: assistantMessage, timestamp: formatTime(new Date()), responseTime: elapsed }]);
 
             if (actions && actions.length > 0) {
                 actions.forEach((action: any) => {
@@ -253,8 +298,9 @@ const Friday: React.FC = () => {
                 await refreshUser();
             }
         } catch {
+            stopThinking();
             showToast('Erro ao conversar com Friday', 'error');
-            setMessages((prev) => [...prev, { role: 'assistant', content: 'Desculpe, erro de conexão. Tente novamente.' }]);
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Desculpe, erro de conexão. Tente novamente.', timestamp: formatTime(new Date()) }]);
         } finally {
             setLoading(false);
         }
@@ -412,6 +458,7 @@ const Friday: React.FC = () => {
                             key={index}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
                             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                             {message.role === 'assistant' && (
@@ -419,31 +466,81 @@ const Friday: React.FC = () => {
                                     <Bot size={14} className="text-[#ff9500]" />
                                 </div>
                             )}
-                            <div
-                                className={`max-w-[80%] sm:max-w-[70%] p-3 sm:p-4 rounded-2xl ${message.role === 'user'
-                                    ? 'bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-medium'
-                                    : 'glass-card border border-white/5'
-                                    }`}
-                            >
-                                <p className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                            <div className="flex flex-col gap-1 max-w-[80%] sm:max-w-[70%]">
+                                <div
+                                    className={`p-3 sm:p-4 rounded-2xl ${message.role === 'user'
+                                        ? 'bg-gradient-to-r from-neon-green to-neon-blue text-dark-900 font-medium'
+                                        : 'glass-card border border-white/5'
+                                        }`}
+                                >
+                                    <p className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                                </div>
+                                {/* Timestamp + response time */}
+                                <div className={`flex items-center gap-2 px-1 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    {message.timestamp && (
+                                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            <Clock size={9} className="opacity-60" />
+                                            {message.timestamp}
+                                        </span>
+                                    )}
+                                    {message.role === 'assistant' && message.responseTime !== undefined && (
+                                        <span className="text-[10px] text-[#ff9500]/60 flex items-center gap-1">
+                                            <Zap size={9} />
+                                            {message.responseTime}s
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </motion.div>
                     ))}
 
-                    {loading && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                            <div className="w-7 h-7 rounded-full bg-[#ff9500]/20 flex items-center justify-center mr-2 mt-1 shrink-0">
-                                <Bot size={14} className="text-[#ff9500]" />
-                            </div>
-                            <div className="glass-card p-4 rounded-2xl">
-                                <div className="flex gap-2">
-                                    <div className="w-2 h-2 bg-[#ff9500] rounded-full animate-bounce" />
-                                    <div className="w-2 h-2 bg-[#ff9500] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                                    <div className="w-2 h-2 bg-[#ff9500] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    {/* Thinking indicator */}
+                    <AnimatePresence>
+                        {loading && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex justify-start"
+                            >
+                                <div className="w-7 h-7 rounded-full bg-[#ff9500]/20 flex items-center justify-center mr-2 mt-1 shrink-0">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                    >
+                                        <Brain size={14} className="text-[#ff9500]" />
+                                    </motion.div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
+                                <div className="glass-card p-4 rounded-2xl border border-[#ff9500]/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1.5">
+                                            <motion.div
+                                                className="w-2 h-2 bg-[#ff9500] rounded-full"
+                                                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                                                transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
+                                            />
+                                            <motion.div
+                                                className="w-2 h-2 bg-[#ff9500] rounded-full"
+                                                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                                                transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+                                            />
+                                            <motion.div
+                                                className="w-2 h-2 bg-[#ff9500] rounded-full"
+                                                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                                                transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+                                            />
+                                        </div>
+                                        <span className="text-xs text-gray-400 font-medium">
+                                            Friday está pensando...
+                                        </span>
+                                        <span className="text-[10px] text-[#ff9500]/50 font-mono tabular-nums min-w-[40px] text-right">
+                                            {thinkingElapsed.toFixed(1)}s
+                                        </span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <div ref={messagesEndRef} />
                 </div>
@@ -535,7 +632,7 @@ const Friday: React.FC = () => {
                             <button
                                 onClick={() => {
                                     setPendingReceipt(null);
-                                    setMessages((prev) => [...prev, { role: 'assistant', content: '❌ Registro cancelado.' }]);
+                                    setMessages((prev) => [...prev, { role: 'assistant', content: '❌ Registro cancelado.', timestamp: formatTime(new Date()) }]);
                                 }}
                                 disabled={loading}
                                 className="flex-1 btn-secondary py-2.5 text-xs font-bold"
