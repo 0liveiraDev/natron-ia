@@ -538,36 +538,41 @@ const uploadFile = async (req, res) => {
         cache_1.cache.invalidate(`dashboard:overview:${userId}`);
         // ========== STEP 2: Build summary message ==========
         let finalMessage = '';
-        // Build a regex-based summary (instant, always works)
-        const parts = [];
-        if (parsed.establishment)
-            parts.push(`**Estabelecimento:** ${parsed.establishment}`);
-        if (parsed.amount)
-            parts.push(`**Valor:** R$ ${parsed.amount.toFixed(2)}`);
-        if (parsed.date)
-            parts.push(`**Data:** ${parsed.date.toLocaleDateString('pt-BR')}`);
-        if (parsed.category)
-            parts.push(`**Categoria:** ${parsed.category}`);
-        if (parts.length > 0) {
-            finalMessage = `${nick}!\n\n**Extração de valores, datas, nomes/estabelecimentos e categorias:**\n\n${parts.join('\n')}`;
-        }
-        else {
-            finalMessage = `${nick}, analisei o ${fileType.toLowerCase()} "${file.originalname}" mas não encontrei valores monetários claros no texto.`;
-        }
-        // Try AI summary in background (fast, short, optional)
-        try {
-            const aiSummary = await callAI([
-                { role: 'system', content: `Você é Friday, assistente do Natron. Resuma em 1 frase curta o conteúdo do documento. Fale com ${nick}. PT-BR.` },
-                { role: 'user', content: `Resuma este texto de um ${fileType.toLowerCase()} em 1 frase:\n${extractedText.substring(0, 800)}` }
-            ], { timeout: 30000, num_predict: 100, num_ctx: 1024 });
-            if (aiSummary && !aiSummary.toLowerCase().includes('não posso') && !aiSummary.toLowerCase().includes('desculpe')) {
-                finalMessage += `\n\n**Resumo:**\n${aiSummary}`;
+        // Calculate txType globally for the summary
+        const textLower = extractedText.toLowerCase();
+        let isIncome = textLower.includes('recebeu') || textLower.includes('recebido') ||
+            textLower.includes('creditado') || textLower.includes('entrada') ||
+            textLower.includes('salario') || textLower.includes('salário');
+        if (parsed.establishment && user?.name) {
+            const estabLower = parsed.establishment.toLowerCase();
+            const userFirstName = user.name.split(' ')[0].toLowerCase();
+            const userFullName = user.name.toLowerCase();
+            if (estabLower.includes(userFirstName) || estabLower.includes(userFullName)) {
+                isIncome = true;
             }
         }
-        catch (e) {
-            // AI summary is optional, ignore errors
-            console.log('AI summary skipped (timeout or error)');
+        const globalTxType = isIncome ? 'entrada' : 'saida';
+        // Build a regex-based summary matching the requested style exactly
+        let summaryText = `**Resumo:**\n${nick}, o comprovante foi processado.`;
+        if (globalTxType === 'entrada') {
+            summaryText = `**Resumo:**\n${nick}, você recebeu uma transferência de R$ ${parsed.amount?.toFixed(2) || '0.00'}${parsed.payer ? ` do pagador ${parsed.payer}` : ''}.`;
         }
+        else {
+            summaryText = `**Resumo:**\n${nick}, você realizou um pagamento/transferência de R$ ${parsed.amount?.toFixed(2) || '0.00'}${parsed.receiver ? ` para ${parsed.receiver}` : ''}.`;
+        }
+        const nomesList = [];
+        if (parsed.payer)
+            nomesList.push(`  + ${parsed.payer} (pagador)`);
+        if (parsed.receiver)
+            nomesList.push(`  + ${parsed.receiver} (recebedor)`);
+        if (parsed.establishment && !parsed.receiver)
+            nomesList.push(`  + ${parsed.establishment}`);
+        finalMessage = `**Extração de valores, datas, nomes/estabelecimentos e categorias:**\n\n` +
+            `* Valores:\n  + ${parsed.amount ? parsed.amount.toFixed(2) : 'Não encontrado'}\n` +
+            `* Datas:\n  + ${parsed.date ? parsed.date.toLocaleDateString('pt-BR') : 'Não encontrada'}\n` +
+            `* Nomes/Estabelecimentos:\n${nomesList.length > 0 ? nomesList.join('\n') : '  + Não encontrado'}\n` +
+            `* Categorias:\n  + ${parsed.category || 'Outros'}\n\n` +
+            `${summaryText}`;
         if (fileActions.length > 0) {
             finalMessage += `\n\n**Registre automaticamente:**\n☑ ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
         }

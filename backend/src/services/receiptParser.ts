@@ -6,6 +6,8 @@ export interface ParsedReceipt {
     subcategory?: string;
     categoryType?: 'essencial' | 'variavel';
     description?: string;
+    payer?: string;
+    receiver?: string;
 }
 
 /**
@@ -129,6 +131,30 @@ function extractDate(text: string): Date | undefined {
         }
     }
 
+    return undefined;
+}
+
+/**
+ * Extrai o nome do pagador do Pix ou Transferência Bancária
+ */
+function extractPayer(text: string): string | undefined {
+    const textNorm = normalizeText(text);
+
+    const regexes = [
+        /(?:pagador|remetente|enviado por|nome do pagador|nome)[\s:]+([a-z ]{5,40})(?:cpf|cnpj|instituicao|agencia|conta|chave|data|banco)/i,
+        /(?:pagador|remetente|enviado por|nome do pagador|nome)[\s:]+([a-z ]{5,40})/i,
+        /de[\s:]+([a-z ]{5,40})/i
+    ];
+
+    for (const regex of regexes) {
+        const match = textNorm.match(regex);
+        if (match && match[1]) {
+            const name = match[1].trim();
+            if (name.length > 5 && !name.includes('banco') && !name.includes('instituicao')) {
+                return name.toUpperCase();
+            }
+        }
+    }
     return undefined;
 }
 
@@ -414,6 +440,7 @@ export function parseReceiptText(text: string): ParsedReceipt {
     const amount = extractAmount(text);
     const date = extractDate(text);
     const receiver = extractReceiver(text);
+    const payer = extractPayer(text);
     const { establishment, category, subcategory, categoryType } = identifyEstablishmentAndCategory(text);
 
     // Se identificarmos que é banco (pix/transf) por fallback mas achamos um 'receiver', é melhor usar o receiver.
@@ -440,5 +467,7 @@ export function parseReceiptText(text: string): ParsedReceipt {
         subcategory,
         categoryType,
         description: finalDescription,
+        payer,
+        receiver
     };
 }
