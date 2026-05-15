@@ -82,16 +82,25 @@ router.put('/finance/config', auth_1.authMiddleware, financeController.updateFin
 // Activity routes
 router.get('/activities', auth_1.authMiddleware, activityController.getActivities);
 // Friday AI routes
+const handleUploadFriday = (req, res, next) => {
+    const uploader = uploadMiddleware_2.uploadFriday.single('file');
+    uploader(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ error: `Erro de upload: ${err.message}` });
+        }
+        next();
+    });
+};
 router.post('/friday/chat', auth_1.authMiddleware, fridayController.chat);
 router.get('/friday/history', auth_1.authMiddleware, fridayController.getHistory);
-router.post('/friday/upload-file', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile);
-router.post('/friday/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile); // backward compat
+router.post('/friday/upload-file', auth_1.authMiddleware, handleUploadFriday, fridayController.uploadFile);
+router.post('/friday/upload-pdf', auth_1.authMiddleware, handleUploadFriday, fridayController.uploadFile); // backward compat
 router.post('/friday/onboarding', auth_1.authMiddleware, fridayController.saveOnboarding);
 router.get('/friday/preferences', auth_1.authMiddleware, fridayController.getPreferences);
 // Legacy aliases (backward compat)
 router.post('/atlas/chat', auth_1.authMiddleware, fridayController.chat);
 router.get('/atlas/history', auth_1.authMiddleware, fridayController.getHistory);
-router.post('/atlas/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile);
+router.post('/atlas/upload-pdf', auth_1.authMiddleware, handleUploadFriday, fridayController.uploadFile);
 // Dashboard routes
 router.get('/dashboard/overview', auth_1.authMiddleware, dashboardController.getOverview);
 router.get('/dashboard/weekly-progress', auth_1.authMiddleware, dashboardController.getWeeklyProgress);

@@ -7,8 +7,8 @@ module.exports = {
     ignore_watch: ['uploads', 'node_modules', '*.db', '*.sqlite', 'logs'],
 
     // 🛡️ ESCUDO DE ESTABILIDADE — Limites de memória
-    max_memory_restart: '200M',         // Reinicia se ultrapassar 200MB de RAM
-    node_args: '--max-old-space-size=180', // Limita o heap V8 para evitar OOM
+    max_memory_restart: '512M',         // Aumentado para lidar com OCR/PDF parsing
+    node_args: '--max-old-space-size=480', // Limita o heap V8
 
     // Restart policy com backoff para não sobrecarregar em loop de crash
     exp_backoff_restart_delay: 100,

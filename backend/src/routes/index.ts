@@ -57,16 +57,26 @@ router.put('/finance/config', authMiddleware, financeController.updateFinancialC
 router.get('/activities', authMiddleware, activityController.getActivities);
 
 // Friday AI routes
+const handleUploadFriday = (req: any, res: any, next: any) => {
+    const uploader = uploadFriday.single('file');
+    uploader(req, res, (err: any) => {
+        if (err) {
+            return res.status(400).json({ error: `Erro de upload: ${err.message}` });
+        }
+        next();
+    });
+};
+
 router.post('/friday/chat', authMiddleware, fridayController.chat);
 router.get('/friday/history', authMiddleware, fridayController.getHistory);
-router.post('/friday/upload-file', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile);
-router.post('/friday/upload-pdf', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile); // backward compat
+router.post('/friday/upload-file', authMiddleware, handleUploadFriday, fridayController.uploadFile);
+router.post('/friday/upload-pdf', authMiddleware, handleUploadFriday, fridayController.uploadFile); // backward compat
 router.post('/friday/onboarding', authMiddleware, fridayController.saveOnboarding);
 router.get('/friday/preferences', authMiddleware, fridayController.getPreferences);
 // Legacy aliases (backward compat)
 router.post('/atlas/chat', authMiddleware, fridayController.chat);
 router.get('/atlas/history', authMiddleware, fridayController.getHistory);
-router.post('/atlas/upload-pdf', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile);
+router.post('/atlas/upload-pdf', authMiddleware, handleUploadFriday, fridayController.uploadFile);
 
 // Dashboard routes
 router.get('/dashboard/overview', authMiddleware, dashboardController.getOverview);
