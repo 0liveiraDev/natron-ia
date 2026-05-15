@@ -252,13 +252,15 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
 
             const chatHistory = history.reverse().map(msg => ({
                 role: msg.role as 'user' | 'assistant' | 'system',
-                content: msg.content
+                content: msg.content.length > 1000 ? msg.content.substring(0, 1000) + '... [texto truncado para performance]' : msg.content
             }));
 
-            const aiResponse = await callAI([
+            const messages = [
                 { role: 'system', content: systemPrompt },
                 ...chatHistory
-            ]);
+            ];
+
+            const aiResponse = await callAI(messages);
 
             if (aiResponse) {
                 const parsedActions = extractActions(aiResponse);
