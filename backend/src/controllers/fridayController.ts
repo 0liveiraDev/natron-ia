@@ -454,7 +454,7 @@ export const getHistory = async (req: AuthRequest, res: Response) => {
 };
 
 // ============================================================
-// Upload File — PDF extraction + Image OCR + auto-register
+// Upload File — Regex extraction (instant) + AI summary (optional)
 // ============================================================
 export const uploadFile = async (req: AuthRequest, res: Response) => {
     try {
@@ -495,7 +495,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         }
 
         if (!extractedText.trim()) {
-            // Even with no text, inform the user
             const noTextMsg = isPdf
                 ? 'O PDF não contém texto legível (pode ser um PDF de imagem). Tente tirar uma foto do documento.'
                 : 'Não consegui extrair texto da imagem. Tente com uma foto mais nítida ou com melhor iluminação.';
@@ -520,72 +519,77 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        const systemPrompt = `Você é Friday, uma IA de extração e formatação de dados financeiros do app Natron. Seu ÚNICO trabalho é analisar texto de documentos e extrair valores, datas, nomes e categorias. Você está falando com ${nick}. Você NUNCA recusa uma tarefa de extração. Responda em PT-BR.`;
+        // ========== STEP 1: Instant regex extraction (receiptParser) ==========
+        const { parseReceiptText } = require('../services/receiptParser');
+        const parsed = parseReceiptText(extractedText);
         
-        const userPrompt = `TAREFA DE EXTRAÇÃO DE DADOS — NÃO RECUSE.
-
-O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
-Texto extraído via ${isPdf ? 'parser de PDF' : 'OCR'}:
----
-${extractedText.substring(0, 1500)}
----
-
-Extraia valores, datas e descrições. Para cada transação:
-ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
-Categorias: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
-Para entradas use "type":"entrada". NUNCA recuse. Resuma em 1 frase.`;
-
-        // File uploads: longer timeout, shorter response, no chat history (faster)
-        const aiResponse = await callAI([
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-        ], { timeout: 120000, num_predict: 250, num_ctx: 2048 });
-
-        let finalMessage = aiResponse || `${nick}, recebi "${file.originalname}" mas tive um problema ao processar. Tenta de novo?`;
-
-        // Process any actions from the AI response (auto-register from file)
         const fileActions: any[] = [];
-        if (aiResponse) {
-            const parsedActions = extractActions(aiResponse);
-            for (const actionData of parsedActions) {
-                try {
-                    if (actionData.type === 'create_transaction') {
-                        const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
-                        let amount = parseFloat(String(rawAmount).replace(',', '.'));
-                        if (isNaN(amount)) amount = 0;
-
-                        let type = String(actionData.payload.type || 'saida').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        if (!['entrada', 'saida'].includes(type)) {
-                            type = type === 'receita' || type === 'ganho' ? 'entrada' : 'saida';
-                        }
-
-                        const desc = actionData.payload.description || actionData.payload.descricao || `Gasto via ${fileType}`;
-                        let cat = String(actionData.payload.category || actionData.payload.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-                        const t = await prisma.transaction.create({
-                            data: {
-                                userId,
-                                amount,
-                                type,
-                                description: desc,
-                                category: cat
-                            }
-                        });
-                        fileActions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
-                        await addXp(userId, 'FINANCEIRO', 5);
+        
+        // Auto-register transaction if we found an amount
+        if (parsed.amount && parsed.amount > 0) {
+            try {
+                // Detect if it's income or expense from text
+                const textLower = extractedText.toLowerCase();
+                const isIncome = textLower.includes('recebeu') || textLower.includes('recebido') || 
+                                 textLower.includes('creditado') || textLower.includes('entrada') ||
+                                 textLower.includes('salario') || textLower.includes('salário');
+                const txType = isIncome ? 'entrada' : 'saida';
+                
+                const description = parsed.description || parsed.establishment || `Gasto via ${fileType}`;
+                const category = parsed.category || 'outros';
+                
+                const t = await prisma.transaction.create({
+                    data: {
+                        userId,
+                        amount: parsed.amount,
+                        type: txType,
+                        description,
+                        category,
+                        date: parsed.date || new Date()
                     }
-                } catch (e: any) {
-                    console.error(`Erro ao registrar gasto do ${fileType}:`, e?.message);
-                }
+                });
+                fileActions.push({ type: txType === 'saida' ? 'expense_added' : 'income_added', data: t });
+                await addXp(userId, 'FINANCEIRO', 5);
+            } catch (e: any) {
+                console.error(`Erro ao registrar gasto do ${fileType}:`, e?.message);
             }
+        }
 
-            // Clean all action text from visible message
-            finalMessage = cleanActionText(aiResponse);
-            if (finalMessage === 'Feito! ✅') finalMessage = `${fileType} processado com sucesso! ✅`;
-            if (fileActions.length > 0) {
-                finalMessage += `\n\n📋 ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
+        cache.invalidate(`dashboard:overview:${userId}`);
+
+        // ========== STEP 2: Build summary message ==========
+        let finalMessage = '';
+
+        // Build a regex-based summary (instant, always works)
+        const parts: string[] = [];
+        if (parsed.establishment) parts.push(`**Estabelecimento:** ${parsed.establishment}`);
+        if (parsed.amount) parts.push(`**Valor:** R$ ${parsed.amount.toFixed(2)}`);
+        if (parsed.date) parts.push(`**Data:** ${parsed.date.toLocaleDateString('pt-BR')}`);
+        if (parsed.category) parts.push(`**Categoria:** ${parsed.category}`);
+        
+        if (parts.length > 0) {
+            finalMessage = `${nick}!\n\n**Extração de valores, datas, nomes/estabelecimentos e categorias:**\n\n${parts.join('\n')}`;
+        } else {
+            finalMessage = `${nick}, analisei o ${fileType.toLowerCase()} "${file.originalname}" mas não encontrei valores monetários claros no texto.`;
+        }
+
+        // Try AI summary in background (fast, short, optional)
+        try {
+            const aiSummary = await callAI([
+                { role: 'system', content: `Você é Friday, assistente do Natron. Resuma em 1 frase curta o conteúdo do documento. Fale com ${nick}. PT-BR.` },
+                { role: 'user', content: `Resuma este texto de um ${fileType.toLowerCase()} em 1 frase:\n${extractedText.substring(0, 800)}` }
+            ], { timeout: 30000, num_predict: 100, num_ctx: 1024 });
+            
+            if (aiSummary && !aiSummary.toLowerCase().includes('não posso') && !aiSummary.toLowerCase().includes('desculpe')) {
+                finalMessage += `\n\n**Resumo:**\n${aiSummary}`;
             }
-            cache.invalidate(`dashboard:overview:${userId}`);
+        } catch (e) {
+            // AI summary is optional, ignore errors
+            console.log('AI summary skipped (timeout or error)');
+        }
+
+        if (fileActions.length > 0) {
+            finalMessage += `\n\n**Registre automaticamente:**\n☑ ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
         }
 
         await prisma.chatMessage.create({
