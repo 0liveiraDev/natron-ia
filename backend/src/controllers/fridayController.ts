@@ -505,7 +505,14 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
         const fileType = isPdf ? 'PDF' : 'Imagem';
 
-        // Save file content as system context
+        const [user, history] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } }),
+            prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 })
+        ]);
+
+        const nick = user?.fridayNickname || user?.name?.split(' ')[0] || 'Usuário';
+
+        // Save file content as system context in DB (for future context)
         await prisma.chatMessage.create({
             data: {
                 role: 'system',
@@ -514,15 +521,11 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        const [user, history] = await Promise.all([
-            prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } }),
-            prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 })
-        ]);
+        const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
 
-        const nick = user?.fridayNickname || user?.name?.split(' ')[0] || 'Usuário';
-
-        // Ask the AI to extract and register data from the file
-        const prompt = `Você é Friday. ${nick} enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
+        const systemPrompt = `Você é Friday, a IA assistente financeira e pessoal do Natron. Você está falando com ${nick}.`;
+        
+        const userPrompt = `O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
 Conteúdo extraído via ${isPdf ? 'leitura do PDF' : 'OCR (reconhecimento de texto na imagem)'}:
 ---
 ${extractedText.substring(0, 3000)}
@@ -530,18 +533,17 @@ ${extractedText.substring(0, 3000)}
 
 Analise o conteúdo acima e:
 1. Extraia TODOS os valores, datas, nomes/estabelecimentos e categorias encontrados.
-2. Resuma em 2-3 frases para ${nick}.
+2. Resuma em 2-3 frases para mim (${nick}).
 3. Se for uma nota fiscal, comprovante ou recibo, registre AUTOMATICAMENTE cada gasto usando ACTION.
 Use: ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
 Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros
 
 Se NÃO for um documento financeiro, apenas resuma o conteúdo de forma útil.`;
 
-        const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
-
         const aiResponse = await callAI([
-            { role: 'system', content: prompt },
-            ...chatHistory
+            { role: 'system', content: systemPrompt },
+            ...chatHistory,
+            { role: 'user', content: userPrompt }
         ]);
 
         let finalMessage = aiResponse || `${nick}, recebi "${file.originalname}" mas tive um problema ao processar. Tenta de novo?`;
