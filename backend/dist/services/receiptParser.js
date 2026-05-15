@@ -183,8 +183,9 @@ function identifyEstablishmentAndCategory(text) {
         'sorveteria': { type: 'variavel', category: 'alimentacao', subcategory: 'lanchonete', name: 'Sorveteria' },
         // ============= TRANSPORTE (Variável/Essencial) =============
         'uber': { type: 'variavel', category: 'transporte', subcategory: 'uber', name: 'Uber' },
-        '99': { type: 'variavel', category: 'transporte', subcategory: '99', name: '99' },
         '99app': { type: 'variavel', category: 'transporte', subcategory: '99', name: '99' },
+        '99 tecnologia': { type: 'variavel', category: 'transporte', subcategory: '99', name: '99' },
+        '99 pay': { type: 'variavel', category: 'transporte', subcategory: '99', name: '99' },
         'indrive': { type: 'variavel', category: 'transporte', subcategory: 'taxi', name: 'InDrive' },
         'taxi': { type: 'variavel', category: 'transporte', subcategory: 'taxi', name: 'Taxi' },
         'passagem': { type: 'variavel', category: 'transporte', subcategory: 'transporte_publico', name: 'Passagem' },
