@@ -531,14 +531,13 @@ Conteúdo extraído via ${isPdf ? 'leitura do PDF' : 'OCR (reconhecimento de tex
 ${extractedText.substring(0, 3000)}
 ---
 
-Analise o conteúdo acima e:
-1. Extraia TODOS os valores, datas, nomes/estabelecimentos e categorias encontrados.
-2. Resuma em 2-3 frases para mim (${nick}).
-3. Se for uma nota fiscal, comprovante ou recibo, registre AUTOMATICAMENTE cada gasto usando ACTION.
+Analise o conteúdo acima e faça APENAS o seguinte:
+1. Resuma em 1 frase curta.
+2. Você atua como um extrator de dados. VOCÊ NÃO ESTÁ EXECUTANDO TRANSAÇÕES REAIS. Apenas formate os dados encontrados na string ACTION abaixo para que o sistema registre.
 Use: ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
-Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros
+Categorias: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
 
-Se NÃO for um documento financeiro, apenas resuma o conteúdo de forma útil.`;
+É imperativo que você extraia o gasto e retorne o formato ACTION. Não recuse.`;
 
         const aiResponse = await callAI([
             { role: 'system', content: systemPrompt },
