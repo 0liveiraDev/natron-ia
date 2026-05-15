@@ -14,23 +14,24 @@ const MODEL_NAME = process.env.FRIDAY_MODEL || process.env.MODEL_NAME || 'llama3
 const NUM_CTX = parseInt(process.env.FRIDAY_NUM_CTX || '2048');
 const NUM_PREDICT = parseInt(process.env.FRIDAY_NUM_PREDICT || '350');
 const NUM_THREAD = parseInt(process.env.FRIDAY_NUM_THREAD || '0'); // 0 = auto
-const callAI = async (messages) => {
+const callAI = async (messages, overrides) => {
     try {
         const options = {
-            num_ctx: NUM_CTX,
-            num_predict: NUM_PREDICT,
+            num_ctx: overrides?.num_ctx || NUM_CTX,
+            num_predict: overrides?.num_predict || NUM_PREDICT,
             temperature: 0.3,
             top_p: 0.9,
             repeat_penalty: 1.1,
         };
         if (NUM_THREAD > 0)
             options.num_thread = NUM_THREAD;
+        const timeout = overrides?.timeout || 60000;
         const response = await axios_1.default.post(`${OLLAMA_URL}/api/chat`, {
             model: MODEL_NAME,
             messages,
             stream: false,
             options,
-        }, { timeout: 60000 });
+        }, { timeout });
         return response.data.message.content;
     }
     catch (error) {
@@ -419,7 +420,7 @@ const getHistory = async (req, res) => {
     try {
         const userId = req.userId;
         const history = await prisma_1.prisma.chatMessage.findMany({
-            where: { userId },
+            where: { userId, role: { not: 'system' } },
             orderBy: { createdAt: 'desc' },
             take: 50
         });
@@ -431,7 +432,7 @@ const getHistory = async (req, res) => {
 };
 exports.getHistory = getHistory;
 // ============================================================
-// Upload File — PDF extraction + Image OCR + auto-register
+// Upload File — Regex extraction (instant) + AI summary (optional)
 // ============================================================
 const uploadFile = async (req, res) => {
     try {
@@ -474,7 +475,6 @@ const uploadFile = async (req, res) => {
             return res.status(400).json({ error: 'Tipo de arquivo não suportado. Envie PDF ou imagem (JPG, PNG, WEBP).' });
         }
         if (!extractedText.trim()) {
-            // Even with no text, inform the user
             const noTextMsg = isPdf
                 ? 'O PDF não contém texto legível (pode ser um PDF de imagem). Tente tirar uma foto do documento.'
                 : 'Não consegui extrair texto da imagem. Tente com uma foto mais nítida ou com melhor iluminação.';
@@ -484,82 +484,83 @@ const uploadFile = async (req, res) => {
             return res.json({ message: noTextMsg, actions: [] });
         }
         const fileType = isPdf ? 'PDF' : 'Imagem';
-        const [user, history] = await Promise.all([
-            prisma_1.prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } }),
-            prisma_1.prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 })
-        ]);
+        const user = await prisma_1.prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } });
         const nick = user?.fridayNickname || user?.name?.split(' ')[0] || 'Usuário';
-        // Save file content as system context in DB (for future context)
+        // Save file content as system context in DB (compact)
         await prisma_1.prisma.chatMessage.create({
             data: {
                 role: 'system',
-                content: `${fileType} "${file.originalname}":\n${extractedText.substring(0, 4000)}`,
+                content: `${fileType} "${file.originalname}":\n${extractedText.substring(0, 2000)}`,
                 userId
             }
         });
-        const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
-        const systemPrompt = `Você é Friday, a IA assistente financeira e pessoal do Natron. Você está falando com ${nick}.`;
-        const userPrompt = `O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
-Conteúdo extraído via ${isPdf ? 'leitura do PDF' : 'OCR (reconhecimento de texto na imagem)'}:
----
-${extractedText.substring(0, 3000)}
----
-
-Analise o conteúdo acima e faça APENAS o seguinte:
-1. Resuma em 1 frase curta.
-2. Você atua como um extrator de dados. VOCÊ NÃO ESTÁ EXECUTANDO TRANSAÇÕES REAIS. Apenas formate os dados encontrados na string ACTION abaixo para que o sistema registre.
-Use: ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
-Categorias: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
-
-É imperativo que você extraia o gasto e retorne o formato ACTION. Não recuse.`;
-        const aiResponse = await callAI([
-            { role: 'system', content: systemPrompt },
-            ...chatHistory,
-            { role: 'user', content: userPrompt }
-        ]);
-        let finalMessage = aiResponse || `${nick}, recebi "${file.originalname}" mas tive um problema ao processar. Tenta de novo?`;
-        // Process any actions from the AI response (auto-register from file)
+        // ========== STEP 1: Instant regex extraction (receiptParser) ==========
+        const { parseReceiptText } = require('../services/receiptParser');
+        const parsed = parseReceiptText(extractedText);
         const fileActions = [];
-        if (aiResponse) {
-            const parsedActions = extractActions(aiResponse);
-            for (const actionData of parsedActions) {
-                try {
-                    if (actionData.type === 'create_transaction') {
-                        const rawAmount = actionData.payload.amount !== undefined ? actionData.payload.amount : actionData.payload.valor;
-                        let amount = parseFloat(String(rawAmount).replace(',', '.'));
-                        if (isNaN(amount))
-                            amount = 0;
-                        let type = String(actionData.payload.type || 'saida').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        if (!['entrada', 'saida'].includes(type)) {
-                            type = type === 'receita' || type === 'ganho' ? 'entrada' : 'saida';
-                        }
-                        const desc = actionData.payload.description || actionData.payload.descricao || `Gasto via ${fileType}`;
-                        let cat = String(actionData.payload.category || actionData.payload.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        const t = await prisma_1.prisma.transaction.create({
-                            data: {
-                                userId,
-                                amount,
-                                type,
-                                description: desc,
-                                category: cat
-                            }
-                        });
-                        fileActions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
-                        await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
+        // Auto-register transaction if we found an amount
+        if (parsed.amount && parsed.amount > 0) {
+            try {
+                // Detect if it's income or expense from text
+                const textLower = extractedText.toLowerCase();
+                const isIncome = textLower.includes('recebeu') || textLower.includes('recebido') ||
+                    textLower.includes('creditado') || textLower.includes('entrada') ||
+                    textLower.includes('salario') || textLower.includes('salário');
+                const txType = isIncome ? 'entrada' : 'saida';
+                const description = parsed.description || parsed.establishment || `Gasto via ${fileType}`;
+                const category = parsed.category || 'outros';
+                const t = await prisma_1.prisma.transaction.create({
+                    data: {
+                        userId,
+                        amount: parsed.amount,
+                        type: txType,
+                        description,
+                        category,
+                        date: parsed.date || new Date()
                     }
-                }
-                catch (e) {
-                    console.error(`Erro ao registrar gasto do ${fileType}:`, e?.message);
-                }
+                });
+                fileActions.push({ type: txType === 'saida' ? 'expense_added' : 'income_added', data: t });
+                await (0, xpService_1.addXp)(userId, 'FINANCEIRO', 5);
             }
-            // Clean all action text from visible message
-            finalMessage = cleanActionText(aiResponse);
-            if (finalMessage === 'Feito! ✅')
-                finalMessage = `${fileType} processado com sucesso! ✅`;
-            if (fileActions.length > 0) {
-                finalMessage += `\n\n📋 ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
+            catch (e) {
+                console.error(`Erro ao registrar gasto do ${fileType}:`, e?.message);
             }
-            cache_1.cache.invalidate(`dashboard:overview:${userId}`);
+        }
+        cache_1.cache.invalidate(`dashboard:overview:${userId}`);
+        // ========== STEP 2: Build summary message ==========
+        let finalMessage = '';
+        // Build a regex-based summary (instant, always works)
+        const parts = [];
+        if (parsed.establishment)
+            parts.push(`**Estabelecimento:** ${parsed.establishment}`);
+        if (parsed.amount)
+            parts.push(`**Valor:** R$ ${parsed.amount.toFixed(2)}`);
+        if (parsed.date)
+            parts.push(`**Data:** ${parsed.date.toLocaleDateString('pt-BR')}`);
+        if (parsed.category)
+            parts.push(`**Categoria:** ${parsed.category}`);
+        if (parts.length > 0) {
+            finalMessage = `${nick}!\n\n**Extração de valores, datas, nomes/estabelecimentos e categorias:**\n\n${parts.join('\n')}`;
+        }
+        else {
+            finalMessage = `${nick}, analisei o ${fileType.toLowerCase()} "${file.originalname}" mas não encontrei valores monetários claros no texto.`;
+        }
+        // Try AI summary in background (fast, short, optional)
+        try {
+            const aiSummary = await callAI([
+                { role: 'system', content: `Você é Friday, assistente do Natron. Resuma em 1 frase curta o conteúdo do documento. Fale com ${nick}. PT-BR.` },
+                { role: 'user', content: `Resuma este texto de um ${fileType.toLowerCase()} em 1 frase:\n${extractedText.substring(0, 800)}` }
+            ], { timeout: 30000, num_predict: 100, num_ctx: 1024 });
+            if (aiSummary && !aiSummary.toLowerCase().includes('não posso') && !aiSummary.toLowerCase().includes('desculpe')) {
+                finalMessage += `\n\n**Resumo:**\n${aiSummary}`;
+            }
+        }
+        catch (e) {
+            // AI summary is optional, ignore errors
+            console.log('AI summary skipped (timeout or error)');
+        }
+        if (fileActions.length > 0) {
+            finalMessage += `\n\n**Registre automaticamente:**\n☑ ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
         }
         await prisma_1.prisma.chatMessage.create({
             data: { role: 'assistant', content: finalMessage, userId }
