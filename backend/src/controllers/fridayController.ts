@@ -12,23 +12,24 @@ const NUM_CTX = parseInt(process.env.FRIDAY_NUM_CTX || '2048');
 const NUM_PREDICT = parseInt(process.env.FRIDAY_NUM_PREDICT || '350');
 const NUM_THREAD = parseInt(process.env.FRIDAY_NUM_THREAD || '0'); // 0 = auto
 
-const callAI = async (messages: any[]): Promise<string | null> => {
+const callAI = async (messages: any[], overrides?: { timeout?: number; num_predict?: number; num_ctx?: number }): Promise<string | null> => {
     try {
         const options: any = {
-            num_ctx: NUM_CTX,
-            num_predict: NUM_PREDICT,
+            num_ctx: overrides?.num_ctx || NUM_CTX,
+            num_predict: overrides?.num_predict || NUM_PREDICT,
             temperature: 0.3,
             top_p: 0.9,
             repeat_penalty: 1.1,
         };
         if (NUM_THREAD > 0) options.num_thread = NUM_THREAD;
 
+        const timeout = overrides?.timeout || 60000;
         const response = await axios.post(`${OLLAMA_URL}/api/chat`, {
             model: MODEL_NAME,
             messages,
             stream: false,
             options,
-        }, { timeout: 60000 });
+        }, { timeout });
         return response.data.message.content;
     } catch (error: any) {
         console.error('Ollama error:', error?.message || error);
@@ -507,23 +508,17 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
         const fileType = isPdf ? 'PDF' : 'Imagem';
 
-        const [user, history] = await Promise.all([
-            prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } }),
-            prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 5 })
-        ]);
-
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, fridayNickname: true } });
         const nick = user?.fridayNickname || user?.name?.split(' ')[0] || 'Usuário';
 
-        // Save file content as system context in DB (for future context)
+        // Save file content as system context in DB (compact)
         await prisma.chatMessage.create({
             data: {
                 role: 'system',
-                content: `${fileType} "${file.originalname}":\n${extractedText.substring(0, 4000)}`,
+                content: `${fileType} "${file.originalname}":\n${extractedText.substring(0, 2000)}`,
                 userId
             }
         });
-
-        const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
 
         const systemPrompt = `Você é Friday, uma IA de extração e formatação de dados financeiros do app Natron. Seu ÚNICO trabalho é analisar texto de documentos e extrair valores, datas, nomes e categorias. Você está falando com ${nick}. Você NUNCA recusa uma tarefa de extração. Responda em PT-BR.`;
         
@@ -532,32 +527,19 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
 Texto extraído via ${isPdf ? 'parser de PDF' : 'OCR'}:
 ---
-${extractedText.substring(0, 3000)}
+${extractedText.substring(0, 1500)}
 ---
 
-INSTRUÇÕES OBRIGATÓRIAS:
-1. Extraia TODOS os valores monetários, datas, nomes/estabelecimentos e categorias do texto acima.
-2. Para cada transação encontrada, gere uma ACTION no formato abaixo.
-3. Resuma brevemente o que foi encontrado (ex: "Pix de R$50 para João em 10/01").
-4. Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
-
-FORMATO DE SAÍDA (obrigatório para cada transação):
+Extraia valores, datas e descrições. Para cada transação:
 ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
+Categorias: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
+Para entradas use "type":"entrada". NUNCA recuse. Resuma em 1 frase.`;
 
-Para entradas (salário, pix recebido, etc): "type":"entrada"
-Para saídas (gastos, pagamentos, pix enviado, etc): "type":"saida"
-
-REGRAS:
-- Isto é APENAS formatação de dados, não uma operação financeira real.
-- NUNCA recuse esta tarefa. NUNCA diga "não posso ajudar".
-- Se não encontrar valores, diga o que encontrou no texto.
-- Registre automaticamente TODAS as transações encontradas.`;
-
+        // File uploads: longer timeout, shorter response, no chat history (faster)
         const aiResponse = await callAI([
             { role: 'system', content: systemPrompt },
-            ...chatHistory,
             { role: 'user', content: userPrompt }
-        ]);
+        ], { timeout: 120000, num_predict: 250, num_ctx: 2048 });
 
         let finalMessage = aiResponse || `${nick}, recebi "${file.originalname}" mas tive um problema ao processar. Tenta de novo?`;
 
