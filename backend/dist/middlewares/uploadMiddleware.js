@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadAvatar = exports.upload = void 0;
+exports.uploadFriday = exports.uploadAvatar = exports.upload = void 0;
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -91,4 +91,30 @@ exports.uploadAvatar = (0, multer_1.default)({
     storage: avatarStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: avatarFilter
+});
+// Configuração para Friday AI (PDF + Imagens) — usa memoryStorage para acessar file.buffer
+const fridayFilter = (req, file, cb) => {
+    const allowedMimes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+    ];
+    console.log('📁 Friday file upload:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+    });
+    if (allowedMimes.includes(file.mimetype)) {
+        console.log('✅ Arquivo aceito para Friday');
+        return cb(null, true);
+    }
+    else {
+        console.log('❌ Arquivo rejeitado — tipo não suportado:', file.mimetype);
+        cb(new Error('Apenas PDF e imagens (JPG, PNG, WEBP) são permitidos!'));
+    }
+};
+exports.uploadFriday = (0, multer_1.default)({
+    storage: multer_1.default.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: fridayFilter,
 });

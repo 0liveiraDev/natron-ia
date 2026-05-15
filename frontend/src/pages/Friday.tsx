@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import api from '../services/api';
 import { useToast } from '../components/Toast';
 import { Bot, Sparkles, Send } from 'lucide-react';
@@ -142,19 +142,32 @@ const Friday: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        const isImage = file.type.startsWith('image/');
+        const fileIcon = isImage ? '📷' : '📄';
+
         setUploadingFile(true);
-        setMessages((prev) => [...prev, { role: 'user', content: `📎 Enviando ${file.name}...` }]);
+        setMessages((prev) => [...prev, { role: 'user', content: `${fileIcon} Enviando ${file.name}...` }]);
 
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await api.post('/friday/upload-pdf', formData, {
+            const response = await api.post('/friday/upload-file', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message }]);
+
+            if (response.data.actions && response.data.actions.length > 0) {
+                response.data.actions.forEach((action: any) => {
+                    switch (action.type) {
+                        case 'expense_added': showToast('💸 Gasto registrado!', 'success'); break;
+                        case 'income_added': showToast('💰 Entrada registrada!', 'success'); break;
+                    }
+                });
+                await refreshUser();
+            }
         } catch {
-            showToast('Erro ao processar PDF', 'error');
-            setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao analisar o PDF. Tente novamente.' }]);
+            showToast('Erro ao processar arquivo', 'error');
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao analisar o arquivo. Tente novamente.' }]);
         } finally {
             setUploadingFile(false);
             e.target.value = '';
@@ -482,7 +495,7 @@ const Friday: React.FC = () => {
                             <label
                                 htmlFor="file-upload"
                                 className={`btn-secondary p-2.5 sm:px-4 cursor-pointer flex items-center justify-center ${uploadingFile ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                title="Enviar nota fiscal"
+                                title="Enviar PDF ou imagem"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -491,7 +504,7 @@ const Friday: React.FC = () => {
                             <input
                                 id="file-upload"
                                 type="file"
-                                accept=".pdf,application/pdf"
+                                accept=".pdf,application/pdf,image/jpeg,image/png,image/webp"
                                 className="hidden"
                                 disabled={loading || uploadingFile}
                                 onChange={handleFileUpload}

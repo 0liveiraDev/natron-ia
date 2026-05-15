@@ -10,7 +10,7 @@ import * as dashboardController from '../controllers/dashboardController';
 import { resetAllXp, getAllUsers, toggleUserActive } from '../controllers/adminController';
 
 import { uploadAvatar as uploadAvatarMiddleware } from '../middlewares/uploadMiddleware';
-import { upload } from '../middlewares/uploadMiddleware';
+import { upload, uploadFriday } from '../middlewares/uploadMiddleware';
 
 const router = Router();
 
@@ -59,13 +59,14 @@ router.get('/activities', authMiddleware, activityController.getActivities);
 // Friday AI routes
 router.post('/friday/chat', authMiddleware, fridayController.chat);
 router.get('/friday/history', authMiddleware, fridayController.getHistory);
-router.post('/friday/upload-pdf', authMiddleware, upload.single('file'), fridayController.uploadPdf);
+router.post('/friday/upload-file', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile);
+router.post('/friday/upload-pdf', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile); // backward compat
 router.post('/friday/onboarding', authMiddleware, fridayController.saveOnboarding);
 router.get('/friday/preferences', authMiddleware, fridayController.getPreferences);
 // Legacy aliases (backward compat)
 router.post('/atlas/chat', authMiddleware, fridayController.chat);
 router.get('/atlas/history', authMiddleware, fridayController.getHistory);
-router.post('/atlas/upload-pdf', authMiddleware, upload.single('file'), fridayController.uploadPdf);
+router.post('/atlas/upload-pdf', authMiddleware, uploadFriday.single('file'), fridayController.uploadFile);
 
 // Dashboard routes
 router.get('/dashboard/overview', authMiddleware, dashboardController.getOverview);

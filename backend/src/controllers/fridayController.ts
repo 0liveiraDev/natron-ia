@@ -451,22 +451,65 @@ export const getHistory = async (req: AuthRequest, res: Response) => {
 };
 
 // ============================================================
-// Upload PDF — Real extraction + auto-register
+// Upload File — PDF extraction + Image OCR + auto-register
 // ============================================================
-export const uploadPdf = async (req: AuthRequest, res: Response) => {
+export const uploadFile = async (req: AuthRequest, res: Response) => {
     try {
         const file = req.file;
         if (!file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
-        const data = await pdf(file.buffer);
-        const text = data.text;
         const userId = req.userId!;
+        let extractedText = '';
+        const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
 
-        // Save PDF content as system context
+        // --- Extract text based on file type ---
+        if (isPdf) {
+            try {
+                const data = await pdf(file.buffer);
+                extractedText = data.text || '';
+            } catch (pdfErr: any) {
+                console.error('Erro ao extrair texto do PDF:', pdfErr?.message);
+                return res.status(400).json({ error: 'Não foi possível ler o PDF. O arquivo pode estar corrompido ou protegido.' });
+            }
+        } else if (isImage) {
+            try {
+                const Tesseract = require('tesseract.js');
+                const { data: { text } } = await Tesseract.recognize(file.buffer, 'por+eng', {
+                    logger: (m: any) => {
+                        if (m.status === 'recognizing text') {
+                            console.log(`🔍 OCR progresso: ${(m.progress * 100).toFixed(0)}%`);
+                        }
+                    }
+                });
+                extractedText = text || '';
+            } catch (ocrErr: any) {
+                console.error('Erro no OCR da imagem:', ocrErr?.message);
+                return res.status(400).json({ error: 'Não foi possível analisar a imagem. Tente novamente.' });
+            }
+        } else {
+            return res.status(400).json({ error: 'Tipo de arquivo não suportado. Envie PDF ou imagem (JPG, PNG, WEBP).' });
+        }
+
+        if (!extractedText.trim()) {
+            // Even with no text, inform the user
+            const noTextMsg = isPdf
+                ? 'O PDF não contém texto legível (pode ser um PDF de imagem). Tente tirar uma foto do documento.'
+                : 'Não consegui extrair texto da imagem. Tente com uma foto mais nítida ou com melhor iluminação.';
+            
+            await prisma.chatMessage.create({
+                data: { role: 'assistant', content: noTextMsg, userId }
+            });
+            return res.json({ message: noTextMsg, actions: [] });
+        }
+
+        const fileType = isPdf ? 'PDF' : 'Imagem';
+
+        // Save file content as system context
         await prisma.chatMessage.create({
             data: {
                 role: 'system',
-                content: `PDF "${file.originalname}":\n${text.substring(0, 4000)}`,
+                content: `${fileType} "${file.originalname}":\n${extractedText.substring(0, 4000)}`,
                 userId
             }
         });
@@ -478,14 +521,21 @@ export const uploadPdf = async (req: AuthRequest, res: Response) => {
 
         const nick = user?.fridayNickname || user?.name?.split(' ')[0] || 'Usuário';
 
-        // Ask the AI to extract and register data from PDF
-        const prompt = `Você é Friday. ${nick} enviou o PDF "${file.originalname}".
+        // Ask the AI to extract and register data from the file
+        const prompt = `Você é Friday. ${nick} enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
+Conteúdo extraído via ${isPdf ? 'leitura do PDF' : 'OCR (reconhecimento de texto na imagem)'}:
+---
+${extractedText.substring(0, 3000)}
+---
+
 Analise o conteúdo acima e:
-1. Extraia TODOS os valores, datas, nomes/estabelecimentos e categorias.
+1. Extraia TODOS os valores, datas, nomes/estabelecimentos e categorias encontrados.
 2. Resuma em 2-3 frases para ${nick}.
-3. Se for uma nota fiscal ou comprovante, registre AUTOMATICAMENTE cada gasto usando ACTION.
+3. Se for uma nota fiscal, comprovante ou recibo, registre AUTOMATICAMENTE cada gasto usando ACTION.
 Use: ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
-Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros`;
+Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros
+
+Se NÃO for um documento financeiro, apenas resuma o conteúdo de forma útil.`;
 
         const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
 
@@ -496,8 +546,8 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
 
         let finalMessage = aiResponse || `${nick}, recebi "${file.originalname}" mas tive um problema ao processar. Tenta de novo?`;
 
-        // Process any actions from the AI response (auto-register from PDF)
-        const pdfActions: any[] = [];
+        // Process any actions from the AI response (auto-register from file)
+        const fileActions: any[] = [];
         if (aiResponse) {
             const parsedActions = extractActions(aiResponse);
             for (const actionData of parsedActions) {
@@ -512,7 +562,7 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
                             type = type === 'receita' || type === 'ganho' ? 'entrada' : 'saida';
                         }
 
-                        const desc = actionData.payload.description || actionData.payload.descricao || 'Gasto registrado via PDF';
+                        const desc = actionData.payload.description || actionData.payload.descricao || `Gasto via ${fileType}`;
                         let cat = String(actionData.payload.category || actionData.payload.categoria || 'outros').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
                         const t = await prisma.transaction.create({
@@ -524,19 +574,19 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
                                 category: cat
                             }
                         });
-                        pdfActions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
+                        fileActions.push({ type: type === 'saida' ? 'expense_added' : 'income_added', data: t });
                         await addXp(userId, 'FINANCEIRO', 5);
                     }
                 } catch (e: any) {
-                    console.error('Erro ao registrar gasto do PDF:', e?.message);
+                    console.error(`Erro ao registrar gasto do ${fileType}:`, e?.message);
                 }
             }
 
             // Clean all action text from visible message
             finalMessage = cleanActionText(aiResponse);
-            if (finalMessage === 'Feito! ✅') finalMessage = 'PDF processado e gastos registrados! ✅';
-            if (pdfActions.length > 0) {
-                finalMessage += `\n\n📋 ${pdfActions.length} transação(ões) registrada(s) automaticamente.`;
+            if (finalMessage === 'Feito! ✅') finalMessage = `${fileType} processado com sucesso! ✅`;
+            if (fileActions.length > 0) {
+                finalMessage += `\n\n📋 ${fileActions.length} transação(ões) registrada(s) automaticamente.`;
             }
             cache.invalidate(`dashboard:overview:${userId}`);
         }
@@ -545,10 +595,10 @@ Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte
             data: { role: 'assistant', content: finalMessage, userId }
         });
 
-        res.json({ message: finalMessage, actions: pdfActions });
+        res.json({ message: finalMessage, actions: fileActions });
     } catch (error) {
-        console.error('PDF error:', error);
-        res.status(500).json({ error: 'Erro ao processar o PDF' });
+        console.error('File processing error:', error);
+        res.status(500).json({ error: 'Erro ao processar o arquivo' });
     }
 };
 

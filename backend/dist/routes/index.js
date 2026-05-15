@@ -84,13 +84,14 @@ router.get('/activities', auth_1.authMiddleware, activityController.getActivitie
 // Friday AI routes
 router.post('/friday/chat', auth_1.authMiddleware, fridayController.chat);
 router.get('/friday/history', auth_1.authMiddleware, fridayController.getHistory);
-router.post('/friday/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.upload.single('file'), fridayController.uploadPdf);
+router.post('/friday/upload-file', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile);
+router.post('/friday/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile); // backward compat
 router.post('/friday/onboarding', auth_1.authMiddleware, fridayController.saveOnboarding);
 router.get('/friday/preferences', auth_1.authMiddleware, fridayController.getPreferences);
 // Legacy aliases (backward compat)
 router.post('/atlas/chat', auth_1.authMiddleware, fridayController.chat);
 router.get('/atlas/history', auth_1.authMiddleware, fridayController.getHistory);
-router.post('/atlas/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.upload.single('file'), fridayController.uploadPdf);
+router.post('/atlas/upload-pdf', auth_1.authMiddleware, uploadMiddleware_2.uploadFriday.single('file'), fridayController.uploadFile);
 // Dashboard routes
 router.get('/dashboard/overview', auth_1.authMiddleware, dashboardController.getOverview);
 router.get('/dashboard/weekly-progress', auth_1.authMiddleware, dashboardController.getWeeklyProgress);

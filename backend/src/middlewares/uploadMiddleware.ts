@@ -89,3 +89,31 @@ export const uploadAvatar = multer({
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: avatarFilter
 });
+
+// Configuração para Friday AI (PDF + Imagens) — usa memoryStorage para acessar file.buffer
+const fridayFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedMimes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+    ];
+    console.log('📁 Friday file upload:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+    });
+
+    if (allowedMimes.includes(file.mimetype)) {
+        console.log('✅ Arquivo aceito para Friday');
+        return cb(null, true);
+    } else {
+        console.log('❌ Arquivo rejeitado — tipo não suportado:', file.mimetype);
+        cb(new Error('Apenas PDF e imagens (JPG, PNG, WEBP) são permitidos!'));
+    }
+};
+
+export const uploadFriday = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: fridayFilter,
+});
