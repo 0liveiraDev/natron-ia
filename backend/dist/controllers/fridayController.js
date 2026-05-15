@@ -134,7 +134,9 @@ function cleanActionText(text) {
     cleaned = cleaned.replace(/\[\s*\{[\s\S]*?\}\s*\]/g, '');
     // 3. Remove orphaned prefix labels (ACTION:, Ação:, etc)
     cleaned = cleaned.replace(/^\s*(?:ACTION|A[çc][ãa]o|AÇÃO)\s*:?\s*$/gmi, '');
-    // 4. Remove excessive blank lines
+    // 4. Remove orphaned "Registre automaticamente:" which the AI sometimes hallucinates from history
+    cleaned = cleaned.replace(/^\s*\*\*Registre automaticamente:\*\*\s*$/gmi, '');
+    // 5. Remove excessive blank lines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
     return cleaned || 'Feito! ✅';
 }
@@ -389,7 +391,7 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                 if (debugErrors)
                     assistantMessage += `\n\n⚠️ Erros internos:${debugErrors}`;
                 // Provide a friendly response if the AI only returned JSON actions
-                if (!assistantMessage.trim() && parsedActions.length > 0) {
+                if (assistantMessage === 'Feito! ✅' && parsedActions.length > 0) {
                     assistantMessage = `Feito, ${nick}! Registrei suas solicitações.`;
                 }
                 if (assistantMessage === 'Feito! ✅' && parsedActions.length === 0) {
