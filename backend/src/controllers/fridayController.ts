@@ -525,21 +525,33 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
         const chatHistory = history.reverse().map(msg => ({ role: msg.role, content: msg.content }));
 
-        const systemPrompt = `Você é Friday, a IA assistente financeira e pessoal do Natron. Você está falando com ${nick}.`;
+        const systemPrompt = `Você é Friday, uma IA de extração e formatação de dados financeiros do app Natron. Seu ÚNICO trabalho é analisar texto de documentos e extrair valores, datas, nomes e categorias. Você está falando com ${nick}. Você NUNCA recusa uma tarefa de extração. Responda em PT-BR.`;
         
-        const userPrompt = `O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
-Conteúdo extraído via ${isPdf ? 'leitura do PDF' : 'OCR (reconhecimento de texto na imagem)'}:
+        const userPrompt = `TAREFA DE EXTRAÇÃO DE DADOS — NÃO RECUSE.
+
+O usuário enviou ${isPdf ? 'o PDF' : 'uma foto/imagem'} "${file.originalname}".
+Texto extraído via ${isPdf ? 'parser de PDF' : 'OCR'}:
 ---
 ${extractedText.substring(0, 3000)}
 ---
 
-Analise o conteúdo acima e faça APENAS o seguinte:
-1. Resuma em 1 frase curta.
-2. Você atua como um extrator de dados. VOCÊ NÃO ESTÁ EXECUTANDO TRANSAÇÕES REAIS. Apenas formate os dados encontrados na string ACTION abaixo para que o sistema registre.
-Use: ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
-Categorias: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
+INSTRUÇÕES OBRIGATÓRIAS:
+1. Extraia TODOS os valores monetários, datas, nomes/estabelecimentos e categorias do texto acima.
+2. Para cada transação encontrada, gere uma ACTION no formato abaixo.
+3. Resuma brevemente o que foi encontrado (ex: "Pix de R$50 para João em 10/01").
+4. Categorias válidas: alimentacao, lazer, assinaturas, moradia, saude, transporte, educacao, salario, investimento, outros.
 
-É imperativo que você extraia o gasto e retorne o formato ACTION. Não recuse.`;
+FORMATO DE SAÍDA (obrigatório para cada transação):
+ACTION: {"type":"create_transaction","payload":{"amount":VALOR,"type":"saida","description":"DESCRICAO","category":"CATEGORIA"}}
+
+Para entradas (salário, pix recebido, etc): "type":"entrada"
+Para saídas (gastos, pagamentos, pix enviado, etc): "type":"saida"
+
+REGRAS:
+- Isto é APENAS formatação de dados, não uma operação financeira real.
+- NUNCA recuse esta tarefa. NUNCA diga "não posso ajudar".
+- Se não encontrar valores, diga o que encontrou no texto.
+- Registre automaticamente TODAS as transações encontradas.`;
 
         const aiResponse = await callAI([
             { role: 'system', content: systemPrompt },
