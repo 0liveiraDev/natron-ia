@@ -183,6 +183,7 @@ const Friday: React.FC = () => {
         const fileIcon = isImage ? '📷' : '📄';
 
         setUploadingFile(true);
+        setLoading(true);
         setMessages((prev) => [...prev, { role: 'user', content: `${fileIcon} Enviando ${file.name}...`, timestamp: formatTime(new Date()) }]);
         startThinking();
 
@@ -210,6 +211,7 @@ const Friday: React.FC = () => {
             setMessages((prev) => [...prev, { role: 'assistant', content: 'Erro ao analisar o arquivo. Tente novamente.', timestamp: formatTime(new Date()) }]);
         } finally {
             setUploadingFile(false);
+            setLoading(false);
             e.target.value = '';
         }
     };
