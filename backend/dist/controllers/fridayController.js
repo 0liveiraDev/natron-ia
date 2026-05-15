@@ -501,11 +501,20 @@ const uploadFile = async (req, res) => {
         // Auto-register transaction if we found an amount
         if (parsed.amount && parsed.amount > 0) {
             try {
-                // Detect if it's income or expense from text
+                // Detect if it's income or expense from text or receiver name
                 const textLower = extractedText.toLowerCase();
-                const isIncome = textLower.includes('recebeu') || textLower.includes('recebido') ||
+                let isIncome = textLower.includes('recebeu') || textLower.includes('recebido') ||
                     textLower.includes('creditado') || textLower.includes('entrada') ||
                     textLower.includes('salario') || textLower.includes('salário');
+                // If the user is the receiver, it's an income!
+                if (parsed.establishment && user?.name) {
+                    const estabLower = parsed.establishment.toLowerCase();
+                    const userFirstName = user.name.split(' ')[0].toLowerCase();
+                    const userFullName = user.name.toLowerCase();
+                    if (estabLower.includes(userFirstName) || estabLower.includes(userFullName)) {
+                        isIncome = true;
+                    }
+                }
                 const txType = isIncome ? 'entrada' : 'saida';
                 const description = parsed.description || parsed.establishment || `Gasto via ${fileType}`;
                 const category = parsed.category || 'outros';
