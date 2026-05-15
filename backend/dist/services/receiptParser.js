@@ -121,8 +121,9 @@ function extractDate(text) {
 function extractPayer(text) {
     const textNorm = normalizeText(text);
     const regexes = [
-        /(?:pagador|remetente|enviado por|nome do pagador|nome)[\s:]+([a-z ]{5,40})(?:cpf|cnpj|instituicao|agencia|conta|chave|data|banco)/i,
-        /(?:pagador|remetente|enviado por|nome do pagador|nome)[\s:]+([a-z ]{5,40})/i,
+        /(?:dados do pagador|pagador|remetente|enviado por)[\s\S]{1,80}?(?:nome)[\s:]+([a-z ]{5,40})(?:cpf|cnpj|instituicao|agencia|conta)/i,
+        /(?:dados do pagador|pagador|remetente|enviado por)[\s\S]{1,80}?(?:nome)[\s:]+([a-z ]{5,40})/i,
+        /pagador[\s:]+([a-z ]{5,40})/i,
         /de[\s:]+([a-z ]{5,40})/i
     ];
     for (const regex of regexes) {
@@ -142,8 +143,9 @@ function extractPayer(text) {
 function extractReceiver(text) {
     const textNorm = normalizeText(text);
     const regexes = [
-        /(?:recebedor|favorecido|destinatario|pago para|nome do recebedor|nome)[\s:]+([a-z ]{5,40})(?:cpf|cnpj|instituicao|agencia|conta|chave|data|banco)/i,
-        /(?:recebedor|favorecido|destinatario|pago para|nome do recebedor|nome)[\s:]+([a-z ]{5,40})/i,
+        /(?:dados do recebedor|recebedor|favorecido|destinatario|pago para)[\s\S]{1,80}?(?:nome)[\s:]+([a-z0-9 ]{5,50})(?:cpf|cnpj|instituicao|agencia|conta|chave)/i,
+        /(?:dados do recebedor|recebedor|favorecido|destinatario|pago para)[\s\S]{1,80}?(?:nome)[\s:]+([a-z0-9 ]{5,50})/i,
+        /recebedor[\s:]+([a-z0-9 ]{5,50})/i,
         /para[\s:]+([a-z ]{5,40})/i
     ];
     for (const regex of regexes) {

@@ -212,13 +212,13 @@ export const chat = async (req: AuthRequest, res: Response) => {
             const [habits, tasks, transactions, history, financialSummary] = await Promise.all([
                 prisma.habit.findMany({ where: { userId }, select: { id: true, title: true, attribute: true } }),
                 prisma.task.findMany({ where: { userId, status: 'pending' }, select: { id: true, title: true } }),
-                prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 8, select: { id: true, description: true, amount: true, type: true, category: true } }),
-                prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 8 }),
+                prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 4, select: { id: true, description: true, amount: true, type: true, category: true } }),
+                prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 4 }),
                 getFinancialSummary(userId, 3)
             ]);
 
-            const tasksList = tasks.slice(0, 8).map(t => `${t.id}:${t.title}`).join('; ');
-            const habitsList = habits.slice(0, 8).map(h => `${h.id}:${h.title}(${h.attribute})`).join('; ');
+            const tasksList = tasks.slice(0, 4).map(t => `${t.id}:${t.title}`).join('; ');
+            const habitsList = habits.slice(0, 4).map(h => `${h.id}:${h.title}(${h.attribute})`).join('; ');
             const txList = transactions.map(t => `${t.id}:${t.description}:R$${t.amount}(${t.type},${t.category})`).join('; ');
             const balance = transactions.reduce((acc, t) => t.type === 'entrada' ? acc + t.amount : acc - t.amount, 0);
 
@@ -411,6 +411,12 @@ REGRAS: NUNCA simule dados. Use ACTION (inglês) para mudar. NUNCA mostre o JSON
                 // Clean all action text from visible message
                 assistantMessage = cleanActionText(aiResponse);
                 if (debugErrors) assistantMessage += `\n\n⚠️ Erros internos:${debugErrors}`;
+                
+                // Provide a friendly response if the AI only returned JSON actions
+                if (!assistantMessage.trim() && parsedActions.length > 0) {
+                    assistantMessage = `Feito, ${nick}! Registrei suas solicitações.`;
+                }
+
                 if (assistantMessage === 'Feito! ✅' && parsedActions.length === 0) {
                      assistantMessage += `\n\n[DEBUG RAW AI]: ${aiResponse}`;
                 }
@@ -528,20 +534,31 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         // Auto-register transaction if we found an amount
         if (parsed.amount && parsed.amount > 0) {
             try {
-                // Detect if it's income or expense from text or receiver name
+                // Detect if it's income or expense from text or receiver/payer names
                 const textLower = extractedText.toLowerCase();
                 let isIncome = textLower.includes('recebeu') || textLower.includes('recebido') || 
                                  textLower.includes('creditado') || textLower.includes('entrada') ||
                                  textLower.includes('salario') || textLower.includes('salário');
                 
-                // If the user is the receiver, it's an income!
-                if (parsed.establishment && user?.name) {
-                    const estabLower = parsed.establishment.toLowerCase();
+                // Smart logic based on explicitly extracted payer/receiver
+                const receiverName = parsed.receiver || parsed.establishment || '';
+                const payerName = parsed.payer || '';
+                
+                if (user?.name) {
                     const userFirstName = user.name.split(' ')[0].toLowerCase();
                     const userFullName = user.name.toLowerCase();
                     
-                    if (estabLower.includes(userFirstName) || estabLower.includes(userFullName)) {
-                        isIncome = true;
+                    if (receiverName) {
+                        const recLower = receiverName.toLowerCase();
+                        if (recLower.includes(userFirstName) || recLower.includes(userFullName)) {
+                            isIncome = true;
+                        }
+                    }
+                    if (payerName) {
+                        const payLower = payerName.toLowerCase();
+                        if (payLower.includes(userFirstName) || payLower.includes(userFullName)) {
+                            isIncome = false; // Override to Expense if user paid it
+                        }
                     }
                 }
                 
@@ -578,12 +595,24 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
                          textLower.includes('creditado') || textLower.includes('entrada') ||
                          textLower.includes('salario') || textLower.includes('salário');
         
-        if (parsed.establishment && user?.name) {
-            const estabLower = parsed.establishment.toLowerCase();
+        const receiverName = parsed.receiver || parsed.establishment || '';
+        const payerName = parsed.payer || '';
+        
+        if (user?.name) {
             const userFirstName = user.name.split(' ')[0].toLowerCase();
             const userFullName = user.name.toLowerCase();
-            if (estabLower.includes(userFirstName) || estabLower.includes(userFullName)) {
-                isIncome = true;
+            
+            if (receiverName) {
+                const recLower = receiverName.toLowerCase();
+                if (recLower.includes(userFirstName) || recLower.includes(userFullName)) {
+                    isIncome = true;
+                }
+            }
+            if (payerName) {
+                const payLower = payerName.toLowerCase();
+                if (payLower.includes(userFirstName) || payLower.includes(userFullName)) {
+                    isIncome = false; // Override to Expense if user paid it
+                }
             }
         }
         const globalTxType = isIncome ? 'entrada' : 'saida';
