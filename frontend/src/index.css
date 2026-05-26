@@ -15,8 +15,9 @@
     --glass-border: rgba(255, 255, 255, 0.1);
   }
 
-  * {
-    @apply transition-colors duration-300;
+  /* Targeted transitions only on interactive elements — avoids global repaint overhead */
+  a, button, input, select, textarea, [role="button"] {
+    @apply transition-colors duration-200;
   }
 
   body {

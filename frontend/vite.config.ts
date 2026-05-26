@@ -6,8 +6,15 @@ export default defineConfig({
     server: {
         port: 3000,
     },
+    esbuild: {
+        drop: ['console', 'debugger'],
+    },
     build: {
         sourcemap: false,
+        target: 'es2020',
+        cssMinify: 'esbuild',
+        minify: 'esbuild',
+        chunkSizeWarningLimit: 600,
         rollupOptions: {
             output: {
                 manualChunks: {

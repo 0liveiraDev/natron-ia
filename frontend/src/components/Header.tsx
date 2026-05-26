@@ -210,6 +210,7 @@ const Header: React.FC = () => {
                 {!isInstalled && !isMobileMode && (
                     <button
                         onClick={installPWA}
+                        aria-label="Instalar aplicativo Natron IA"
                         className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-[#00ff88]/20 bg-[#00ff88]/5 hover:bg-[#00ff88]/10 transition-colors text-[10px] sm:text-sm font-bold text-[#00ff88]"
                     >
                         <Bot size={16} className="hidden sm:inline" />
@@ -220,6 +221,7 @@ const Header: React.FC = () => {
 
                 <button
                     onClick={() => navigate('/friday')}
+                    aria-label="Falar com a Friday IA"
                     className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors text-sm font-medium"
                 >
                     <Bot size={16} className="text-[#ff9500]" />

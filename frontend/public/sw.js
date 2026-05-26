@@ -1,5 +1,5 @@
-const CACHE_NAME = 'natron-ia-v3';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'natron-ia-v4';
+const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/favicon.png',
@@ -10,7 +10,7 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE);
+            return cache.addAll(STATIC_ASSETS);
         })
     );
 });
@@ -37,7 +37,24 @@ self.addEventListener('fetch', (event) => {
         return; // Let browser handle normally (Network Only)
     }
 
-    // Network-first for everything else (HTML, Assets)
+    // Cache-first for hashed build assets (JS/CSS with content hash in filename)
+    if (url.pathname.startsWith('/assets/') && (url.pathname.endsWith('.js') || url.pathname.endsWith('.css'))) {
+        event.respondWith(
+            caches.match(event.request).then((cached) => {
+                if (cached) return cached;
+                return fetch(event.request).then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                });
+            })
+        );
+        return;
+    }
+
+    // Network-first for HTML and other resources
     event.respondWith(
         fetch(event.request)
             .then((response) => {

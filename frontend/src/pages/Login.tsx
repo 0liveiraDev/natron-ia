@@ -177,7 +177,8 @@ const Login: React.FC = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none"
+                                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none min-w-[44px] min-h-[44px] flex items-center justify-center"
                                             >
                                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
@@ -270,7 +271,8 @@ const Login: React.FC = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none"
+                                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#00ff88] transition-colors focus:outline-none min-w-[44px] min-h-[44px] flex items-center justify-center"
                                             >
                                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>

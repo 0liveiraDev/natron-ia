@@ -81,19 +81,6 @@ const Dashboard: React.FC = () => {
     const totalGoals = activeGoals + completedGoals;
     const goalsProgress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-    // Weekly Costs from API data - ensure minimum visible height
-    const weeklyCostsRaw = weeklyProgress.map((day: any) => day.expenses || 0);
-    const maxWeeklyCost = Math.max(...weeklyCostsRaw, 1);
-    const weeklyCosts = weeklyCostsRaw.map(cost => {
-        if (cost === 0) return 0;
-        // Ensure at least 10% height for visibility
-        const percentage = (cost / maxWeeklyCost) * 100;
-        return Math.max(percentage, 10);
-    });
-
-    console.log('📊 Weekly Progress Data:', weeklyProgress);
-    console.log('💰 Weekly Costs Raw:', weeklyCostsRaw);
-    console.log('📈 Weekly Costs Normalized:', weeklyCosts);
 
     // Weekly Income - calculate from weeklyProgress (need to add income field to backend)
     const weeklyIncome = weeklyProgress.reduce((sum: number, day: any) => sum + (day.income || 0), 0);

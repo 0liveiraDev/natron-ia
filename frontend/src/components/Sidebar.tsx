@@ -20,7 +20,6 @@ const Sidebar: React.FC = () => {
         const apiBase = import.meta.env.VITE_API_URL || 'https://natron-ia.onrender.com/api';
         const base = apiBase.replace('/api', '');
         const fullUrl = `${base}${url.startsWith('/') ? '' : '/'}${url}`;
-        console.log('🖼️ Avatar URL:', fullUrl);
         return fullUrl;
     };
 
@@ -177,7 +176,7 @@ const Sidebar: React.FC = () => {
             className="w-64 h-screen glass-card border-r border-dark-600 p-6 flex flex-col"
         >
             <div className="mb-8 flex flex-col items-center text-center">
-                <div className="relative group mb-3 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="relative group mb-3 cursor-pointer" onClick={() => fileInputRef.current?.click()} role="button" aria-label="Alterar foto de perfil" tabIndex={0}>
                     <motion.div
                         className="w-24 h-24 rounded-full overflow-hidden border-2 p-0.5"
                         animate={isLevelingUp ? {
@@ -292,7 +291,7 @@ const Sidebar: React.FC = () => {
             </nav>
 
             <div className="mt-auto pt-4 border-t border-[#333]">
-                <button onClick={handleLogout} className="flex items-center gap-3 transition w-full px-4 py-2 rounded-lg hover:bg-red-500/10" style={{ color: 'var(--text-secondary)' }}>
+                <button onClick={handleLogout} aria-label="Sair da conta" className="flex items-center gap-3 transition w-full px-4 py-2 rounded-lg hover:bg-red-500/10" style={{ color: 'var(--text-secondary)' }}>
                     <LogOut size={18} />
                     <span className="text-sm font-bold">Sair</span>
                 </button>

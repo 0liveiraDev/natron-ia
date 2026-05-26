@@ -13,8 +13,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-  <title>Natron IA</title>
+    rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+  <title>Natron IA - Sistema Inteligente de Produtividade</title>
+  <meta name="description" content="Natron IA: seu segundo cérebro para dominar produtividade, hábitos, tarefas e finanças pessoais com inteligência artificial.">
+  <meta name="robots" content="index, follow">
+  <link rel="modulepreload" href="/src/main.tsx">
   <style>
     /* Prevent white flash on load */
     html, body {
@@ -159,7 +163,7 @@
 
       <div id="recovery-zone" style="display:none;">
         <p style="color:#8e8e93;font-family:Inter,sans-serif;font-size:10px;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;">O sistema está demorando para responder</p>
-        <button id="btn-recovery" style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:10px 20px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition: all 0.3s ease;">Forçar Atualização</button>
+        <button id="btn-recovery" aria-label="Forçar atualização da página" style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:10px 20px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:2px;transition: all 0.3s ease;min-width:44px;min-height:44px;">Forçar Atualização</button>
         <p style="color:#555;font-family:Inter,sans-serif;font-size:9px;margin-top:12px;">Sua sessão de login será preservada</p>
       </div>
     </div>

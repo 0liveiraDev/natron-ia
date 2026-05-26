@@ -74,7 +74,8 @@ const MobileNav: React.FC = () => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-gray-500'}`}
+                            aria-label={item.label}
+                            className={`flex flex-col items-center gap-1 transition-all duration-300 min-w-[44px] min-h-[44px] justify-center ${isActive ? 'text-white scale-110' : 'text-gray-500'}`}
                         >
                             <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-white/10' : ''}`}>
                                 {item.icon}
@@ -86,7 +87,8 @@ const MobileNav: React.FC = () => {
                 {/* Profile Avatar Button */}
                 <Link
                     to="/profile"
-                    className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-white"
+                    aria-label="Meu perfil"
+                    className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-white min-w-[44px] min-h-[44px] justify-center"
                 >
                     <div className="p-1 rounded-xl transition-all">
                         {avatarUrl ? (
@@ -121,7 +123,8 @@ const MobileNav: React.FC = () => {
                                         setShowProfileModal(false);
                                         setPreviewUrl(null);
                                     }}
-                                    className="p-2 hover:bg-[#1a1a1a] rounded transition"
+                                    aria-label="Fechar modal de foto de perfil"
+                                    className="p-2 hover:bg-[#1a1a1a] rounded transition min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 >
                                     <X size={20} />
                                 </button>
